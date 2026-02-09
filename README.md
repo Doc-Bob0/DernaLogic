@@ -38,11 +38,12 @@ Application qui adapte votre protocole de soins aux conditions environnementales
 - ✅ **Ajout de produits avec IA** (Google Gemini) - détection automatique des caractéristiques
 - ✅ Algorithme de filtrage intelligent (UV, texture, pureté)
 - ✅ Recommandations par moment de la journée (Matin / Journée / Soir)
+- ✅ **Historique des analyses** avec interface de visualisation (récentes / archives)
+- ✅ **Rotation automatique** des analyses > 2 semaines vers les archives
 - ✅ Interface graphique moderne avec CustomTkinter
 
 ### Prévues
 
-- 🔜 Historique des analyses
 - 🔜 Export des recommandations
 - 🔜 Notifications quotidiennes
 - 🔜 Incompatibilités entre actifs
@@ -161,7 +162,8 @@ DermaLogic/
 ├── core/                   # Logique métier
 │   ├── __init__.py
 │   ├── algorithme.py       # Algorithme de décision + modèle Produit
-│   └── config.py           # Gestionnaire de configuration
+│   ├── config.py           # Gestionnaire de configuration
+│   └── historique.py       # Gestionnaire d'historique des analyses
 │
 ├── gui/                    # Interface utilisateur
 │   ├── __init__.py
@@ -170,7 +172,10 @@ DermaLogic/
 └── user_data/              # Données utilisateur (ignoré par git)
     ├── README.md
     ├── config.json         # Configuration + favoris (généré)
-    └── produits_derma.json # Produits (généré)
+    ├── produits_derma.json # Produits (généré)
+    └── historique/         # Historique des analyses
+        ├── analyses_recentes.json  # 2 dernières semaines
+        └── analyses_archives.json  # Plus anciennes
 ```
 
 ---

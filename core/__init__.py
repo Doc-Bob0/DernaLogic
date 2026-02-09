@@ -5,7 +5,8 @@ DermaLogic - Module Core
 Ce module contient la logique métier :
 - Algorithme de décision dermatologique
 - Modèles de données (produits, conditions, résultats)
-- Enums et constantes
+- Gestionnaire de configuration
+- Historique des analyses
 """
 
 from core.algorithme import (
@@ -30,6 +31,22 @@ from core.algorithme import (
     SEUIL_PM25_POLLUTION,
 )
 
+from core.config import (
+    VilleConfig,
+    Configuration,
+    GestionnaireConfig,
+)
+
+from core.historique import (
+    ProduitAnalyse,
+    ConditionsAnalyse,
+    ResultatAnalyseHistorique,
+    GestionnaireHistorique,
+    creer_conditions_depuis_env,
+    creer_produit_depuis_resultat,
+    DUREE_RECENTES_JOURS,
+)
+
 __all__ = [
     # Énumérations
     "Categorie",
@@ -50,4 +67,18 @@ __all__ = [
     "SEUIL_HUMIDITE_BASSE",
     "SEUIL_HUMIDITE_HAUTE",
     "SEUIL_PM25_POLLUTION",
+    
+    # Configuration
+    "VilleConfig",
+    "Configuration",
+    "GestionnaireConfig",
+    
+    # Historique
+    "ProduitAnalyse",
+    "ConditionsAnalyse",
+    "ResultatAnalyseHistorique",
+    "GestionnaireHistorique",
+    "creer_conditions_depuis_env",
+    "creer_produit_depuis_resultat",
+    "DUREE_RECENTES_JOURS",
 ]

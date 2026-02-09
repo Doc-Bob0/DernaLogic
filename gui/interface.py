@@ -45,6 +45,14 @@ from core.algorithme import (
     ResultatDecision,
 )
 from core.config import GestionnaireConfig, VilleConfig
+from core.historique import (
+    GestionnaireHistorique,
+    ConditionsAnalyse,
+    ProduitAnalyse,
+    ResultatAnalyseHistorique,
+    creer_conditions_depuis_env,
+    creer_produit_depuis_resultat,
+)
 
 
 # =============================================================================
@@ -762,6 +770,338 @@ class PageProduits(ctk.CTkFrame):
     def _ajouter_avec_ia(self) -> None:
         """Ouvre la fenêtre de recherche IA pour analyser un produit."""
         FenetreRechercheIA(self, self.gestionnaire, self.actualiser_liste)
+
+
+# =============================================================================
+# PAGE HISTORIQUE
+# =============================================================================
+
+class PageHistorique(ctk.CTkFrame):
+    """
+    Page d'affichage de l'historique des analyses.
+    
+    Affiche les analyses récentes (< 2 semaines) et les archives.
+    Chaque analyse peut être dépliée pour voir les détails.
+    """
+    
+    def __init__(self, master, gestionnaire_historique: GestionnaireHistorique, **kwargs):
+        super().__init__(master, **kwargs)
+        self.gestionnaire = gestionnaire_historique
+        self.configure(fg_color="transparent")
+        self.onglet_actif = "recentes"  # "recentes" ou "archives"
+        self._creer_interface()
+    
+    def _creer_interface(self) -> None:
+        """Construit l'interface de la page."""
+        
+        # Header
+        frame_header = ctk.CTkFrame(self, fg_color="transparent")
+        frame_header.pack(fill="x", padx=20, pady=15)
+        
+        ctk.CTkLabel(
+            frame_header,
+            text="Historique des Analyses",
+            font=ctk.CTkFont(size=24, weight="bold")
+        ).pack(side="left")
+        
+        # Statistiques
+        stats = self.gestionnaire.statistiques()
+        self.label_stats = ctk.CTkLabel(
+            frame_header,
+            text=f"{stats['nb_total']} analyses",
+            font=ctk.CTkFont(size=14),
+            text_color=COULEUR_TEXTE_SECONDAIRE
+        )
+        self.label_stats.pack(side="left", padx=15)
+        
+        # Onglets
+        frame_onglets = ctk.CTkFrame(self, fg_color=COULEUR_PANNEAU, corner_radius=10)
+        frame_onglets.pack(fill="x", padx=20, pady=(0, 10))
+        
+        frame_btns = ctk.CTkFrame(frame_onglets, fg_color="transparent")
+        frame_btns.pack(pady=8, padx=10)
+        
+        self.btn_recentes = ctk.CTkButton(
+            frame_btns,
+            text=f"📅 Récentes ({stats['nb_recentes']})",
+            command=lambda: self._changer_onglet("recentes"),
+            fg_color=COULEUR_ACCENT,
+            hover_color=COULEUR_ACCENT_HOVER,
+            text_color=COULEUR_FOND,
+            font=ctk.CTkFont(weight="bold"),
+            width=150
+        )
+        self.btn_recentes.pack(side="left", padx=5)
+        
+        self.btn_archives = ctk.CTkButton(
+            frame_btns,
+            text=f"📦 Archives ({stats['nb_archives']})",
+            command=lambda: self._changer_onglet("archives"),
+            fg_color="transparent",
+            hover_color=COULEUR_CARTE_HOVER,
+            text_color="#fff",
+            font=ctk.CTkFont(weight="bold"),
+            width=150
+        )
+        self.btn_archives.pack(side="left", padx=5)
+        
+        # Contenu scrollable
+        self.frame_contenu = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self.frame_contenu.pack(fill="both", expand=True, padx=20, pady=(0, 20))
+        
+        # Afficher les récentes par défaut
+        self._afficher_recentes()
+    
+    def _changer_onglet(self, onglet: str) -> None:
+        """Change l'onglet actif."""
+        self.onglet_actif = onglet
+        
+        # Mettre à jour les boutons
+        if onglet == "recentes":
+            self.btn_recentes.configure(fg_color=COULEUR_ACCENT, text_color=COULEUR_FOND)
+            self.btn_archives.configure(fg_color="transparent", text_color="#fff")
+            self._afficher_recentes()
+        else:
+            self.btn_archives.configure(fg_color=COULEUR_ACCENT, text_color=COULEUR_FOND)
+            self.btn_recentes.configure(fg_color="transparent", text_color="#fff")
+            self._afficher_archives()
+    
+    def _afficher_recentes(self) -> None:
+        """Affiche les analyses récentes."""
+        self._nettoyer_contenu()
+        analyses = self.gestionnaire.obtenir_recentes()
+        
+        if not analyses:
+            self._afficher_vide("Aucune analyse récente")
+            return
+        
+        # Grouper par date
+        par_date = {}
+        for analyse in analyses:
+            if analyse.date not in par_date:
+                par_date[analyse.date] = []
+            par_date[analyse.date].append(analyse)
+        
+        for date, liste_analyses in par_date.items():
+            self._creer_section_date(date, liste_analyses)
+    
+    def _afficher_archives(self) -> None:
+        """Affiche les analyses archivées."""
+        self._nettoyer_contenu()
+        analyses = self.gestionnaire.obtenir_archives()
+        
+        if not analyses:
+            self._afficher_vide("Aucune archive disponible")
+            return
+        
+        # Grouper par date
+        par_date = {}
+        for analyse in analyses:
+            if analyse.date not in par_date:
+                par_date[analyse.date] = []
+            par_date[analyse.date].append(analyse)
+        
+        for date, liste_analyses in par_date.items():
+            self._creer_section_date(date, liste_analyses)
+    
+    def _nettoyer_contenu(self) -> None:
+        """Nettoie le contenu de la frame."""
+        for widget in self.frame_contenu.winfo_children():
+            widget.destroy()
+    
+    def _afficher_vide(self, message: str) -> None:
+        """Affiche un message quand il n'y a pas de données."""
+        frame_vide = ctk.CTkFrame(
+            self.frame_contenu,
+            fg_color=COULEUR_PANNEAU,
+            corner_radius=15
+        )
+        frame_vide.pack(fill="x", pady=50, padx=50)
+        
+        ctk.CTkLabel(
+            frame_vide,
+            text=f"📭\n\n{message}",
+            font=ctk.CTkFont(size=16),
+            text_color=COULEUR_TEXTE_SECONDAIRE,
+            justify="center"
+        ).pack(pady=40)
+    
+    def _creer_section_date(self, date: str, analyses: list) -> None:
+        """Crée une section pour une date donnée."""
+        # Header de date
+        frame_date = ctk.CTkFrame(self.frame_contenu, fg_color="transparent")
+        frame_date.pack(fill="x", pady=(15, 5))
+        
+        # Formater la date
+        try:
+            from datetime import datetime
+            dt = datetime.fromisoformat(date)
+            date_formatee = dt.strftime("%A %d %B %Y").capitalize()
+        except:
+            date_formatee = date
+        
+        ctk.CTkLabel(
+            frame_date,
+            text=f"📅 {date_formatee}",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color=COULEUR_ACCENT
+        ).pack(side="left")
+        
+        ctk.CTkLabel(
+            frame_date,
+            text=f"{len(analyses)} analyse(s)",
+            font=ctk.CTkFont(size=12),
+            text_color=COULEUR_TEXTE_SECONDAIRE
+        ).pack(side="right")
+        
+        # Cartes d'analyses
+        for analyse in analyses:
+            self._creer_carte_analyse(analyse)
+    
+    def _creer_carte_analyse(self, analyse: ResultatAnalyseHistorique) -> None:
+        """Crée une carte pour une analyse."""
+        frame = ctk.CTkFrame(
+            self.frame_contenu,
+            fg_color=COULEUR_CARTE,
+            corner_radius=12
+        )
+        frame.pack(fill="x", pady=4)
+        
+        # Header avec l'heure et les conditions
+        frame_header = ctk.CTkFrame(frame, fg_color="transparent")
+        frame_header.pack(fill="x", padx=15, pady=10)
+        
+        # Heure
+        ctk.CTkLabel(
+            frame_header,
+            text=f"🕐 {analyse.heure}",
+            font=ctk.CTkFont(size=13, weight="bold")
+        ).pack(side="left")
+        
+        # Ville
+        ctk.CTkLabel(
+            frame_header,
+            text=f"📍 {analyse.conditions.ville}, {analyse.conditions.pays}",
+            font=ctk.CTkFont(size=12),
+            text_color=COULEUR_TEXTE_SECONDAIRE
+        ).pack(side="left", padx=15)
+        
+        # Conditions environnementales (badges)
+        frame_badges = ctk.CTkFrame(frame_header, fg_color="transparent")
+        frame_badges.pack(side="right")
+        
+        # UV
+        couleur_uv = self._couleur_niveau(analyse.conditions.niveau_uv)
+        ctk.CTkLabel(
+            frame_badges,
+            text=f"UV {analyse.conditions.indice_uv:.1f}",
+            font=ctk.CTkFont(size=10, weight="bold"),
+            text_color=COULEUR_FOND,
+            fg_color=couleur_uv,
+            corner_radius=4,
+            width=55
+        ).pack(side="left", padx=2)
+        
+        # Humidité
+        ctk.CTkLabel(
+            frame_badges,
+            text=f"💧 {analyse.conditions.humidite:.0f}%",
+            font=ctk.CTkFont(size=10),
+            text_color="#fff"
+        ).pack(side="left", padx=5)
+        
+        # Température
+        ctk.CTkLabel(
+            frame_badges,
+            text=f"🌡️ {analyse.conditions.temperature:.0f}°C",
+            font=ctk.CTkFont(size=10),
+            text_color="#fff"
+        ).pack(side="left", padx=5)
+        
+        # Alertes si présentes
+        if analyse.alertes:
+            frame_alertes = ctk.CTkFrame(frame, fg_color="#2a1a2a", corner_radius=6)
+            frame_alertes.pack(fill="x", padx=15, pady=(0, 5))
+            
+            for alerte in analyse.alertes[:2]:  # Max 2 alertes affichées
+                ctk.CTkLabel(
+                    frame_alertes,
+                    text=f"⚠️ {alerte}",
+                    font=ctk.CTkFont(size=10),
+                    text_color="#f9ed69"
+                ).pack(anchor="w", padx=8, pady=2)
+        
+        # Résumé des produits par moment
+        frame_resume = ctk.CTkFrame(frame, fg_color="transparent")
+        frame_resume.pack(fill="x", padx=15, pady=(0, 10))
+        
+        # Matin
+        nb_matin = len(analyse.produits_matin)
+        self._creer_badge_moment(frame_resume, "matin", nb_matin)
+        
+        # Journée
+        nb_journee = len(analyse.produits_journee)
+        self._creer_badge_moment(frame_resume, "journee", nb_journee)
+        
+        # Soir
+        nb_soir = len(analyse.produits_soir)
+        self._creer_badge_moment(frame_resume, "soir", nb_soir)
+    
+    def _creer_badge_moment(self, parent, moment: str, nb_produits: int) -> None:
+        """Crée un badge pour un moment de la journée."""
+        couleur, titre = COULEURS_MOMENT.get(moment, ("#fff", moment.upper()))
+        
+        frame = ctk.CTkFrame(parent, fg_color=COULEUR_CARTE_HOVER, corner_radius=6)
+        frame.pack(side="left", padx=3)
+        
+        ctk.CTkFrame(
+            frame,
+            fg_color=couleur,
+            width=4,
+            corner_radius=2
+        ).pack(side="left", fill="y", padx=(5, 0), pady=5)
+        
+        ctk.CTkLabel(
+            frame,
+            text=f"{titre}: {nb_produits}",
+            font=ctk.CTkFont(size=10),
+            text_color="#fff"
+        ).pack(side="left", padx=(5, 10), pady=5)
+    
+    def _couleur_niveau(self, niveau: str) -> str:
+        """Retourne la couleur pour un niveau."""
+        couleurs = {
+            "Nul": "#6c757d",
+            "Faible": COULEUR_ACCENT,
+            "Modéré": "#f9ed69",
+            "Modere": "#f9ed69",
+            "Élevé": "#f38181",
+            "Eleve": "#f38181",
+            "Très élevé": COULEUR_DANGER,
+            "Tres eleve": COULEUR_DANGER,
+            "Extrême": "#aa2ee6",
+            "Extreme": "#aa2ee6",
+            "Normal": COULEUR_ACCENT,
+            "Sec": "#f9ed69",
+            "Très sec": "#f38181",
+            "Humide": "#00b4d8",
+            "Très humide": "#9b59b6",
+            "Bon": COULEUR_ACCENT,
+            "Mauvais": COULEUR_DANGER
+        }
+        return couleurs.get(niveau, "#6c757d")
+    
+    def actualiser(self) -> None:
+        """Actualise l'affichage de l'historique."""
+        stats = self.gestionnaire.statistiques()
+        self.label_stats.configure(text=f"{stats['nb_total']} analyses")
+        self.btn_recentes.configure(text=f"📅 Récentes ({stats['nb_recentes']})")
+        self.btn_archives.configure(text=f"📦 Archives ({stats['nb_archives']})")
+        
+        if self.onglet_actif == "recentes":
+            self._afficher_recentes()
+        else:
+            self._afficher_archives()
 
 
 # =============================================================================
@@ -1618,12 +1958,13 @@ class ApplicationPrincipale(ctk.CTk):
     Fenêtre principale de l'application DermaLogic.
     
     Gère la navigation entre les pages et les données globales
-    (météo, produits, configuration).
+    (météo, produits, configuration, historique).
     
     Attributes:
         client_meteo: Client API Open-Meteo
         gestionnaire: Gestionnaire de produits
         gestionnaire_config: Gestionnaire de configuration
+        gestionnaire_historique: Gestionnaire d'historique des analyses
         donnees_env: Données environnementales actuelles
     """
     
@@ -1642,6 +1983,7 @@ class ApplicationPrincipale(ctk.CTk):
         # Initialisation des services
         self.gestionnaire_config = GestionnaireConfig()
         self.gestionnaire = GestionnaireProduits()
+        self.gestionnaire_historique = GestionnaireHistorique()
         self.donnees_env: DonneesEnvironnementales = None
         
         # Initialiser le client météo avec la ville sauvegardée
@@ -1698,6 +2040,16 @@ class ApplicationPrincipale(ctk.CTk):
         )
         self.btn_produits.pack(side="left", padx=5)
         
+        self.btn_historique = ctk.CTkButton(
+            frame_btns,
+            text="📊 Historique",
+            command=lambda: self._afficher_page("historique"),
+            fg_color="transparent",
+            hover_color=COULEUR_CARTE_HOVER,
+            width=110
+        )
+        self.btn_historique.pack(side="left", padx=5)
+        
         # Sélection de ville (à droite)
         frame_ville = ctk.CTkFrame(self.frame_nav, fg_color="transparent")
         frame_ville.pack(side="right", padx=20)
@@ -1728,21 +2080,24 @@ class ApplicationPrincipale(ctk.CTk):
         # Pages
         self.page_accueil = PageAccueil(self.frame_pages, self)
         self.page_produits = PageProduits(self.frame_pages, self.gestionnaire)
+        self.page_historique = PageHistorique(self.frame_pages, self.gestionnaire_historique)
     
     def _afficher_page(self, nom: str) -> None:
         """
         Affiche une page et met à jour la navigation.
         
         Args:
-            nom: Nom de la page ("accueil" ou "produits")
+            nom: Nom de la page ("accueil", "produits" ou "historique")
         """
         # Masquer toutes les pages
         self.page_accueil.pack_forget()
         self.page_produits.pack_forget()
+        self.page_historique.pack_forget()
         
         # Reset des boutons
         self.btn_accueil.configure(fg_color="transparent", text_color="#fff")
         self.btn_produits.configure(fg_color="transparent", text_color="#fff")
+        self.btn_historique.configure(fg_color="transparent", text_color="#fff")
         
         # Afficher la page demandée
         if nom == "accueil":
@@ -1752,6 +2107,10 @@ class ApplicationPrincipale(ctk.CTk):
             self.page_produits.pack(fill="both", expand=True)
             self.page_produits.actualiser_liste()
             self.btn_produits.configure(fg_color=COULEUR_ACCENT, text_color=COULEUR_FOND)
+        elif nom == "historique":
+            self.page_historique.pack(fill="both", expand=True)
+            self.page_historique.actualiser()
+            self.btn_historique.configure(fg_color=COULEUR_ACCENT, text_color=COULEUR_FOND)
     
     # =========================================================================
     # HELPERS COULEUR
@@ -1882,7 +2241,7 @@ class ApplicationPrincipale(ctk.CTk):
         self.page_accueil.btn_actualiser.configure(text="Actualiser")
     
     def lancer_analyse(self) -> None:
-        """Lance l'analyse des produits."""
+        """Lance l'analyse des produits et sauvegarde dans l'historique."""
         if not self.donnees_env:
             messagebox.showwarning(
                 "Attention",
@@ -1912,9 +2271,61 @@ class ApplicationPrincipale(ctk.CTk):
         moteur = MoteurDecision(produits)
         resultat = moteur.analyser(conditions)
         
+        # Sauvegarder dans l'historique
+        self._sauvegarder_analyse_historique(resultat)
+        
         # Afficher
         self.page_accueil.afficher_resultat(resultat)
         self.page_accueil.btn_analyser.configure(text="ANALYSER MES PRODUITS")
+    
+    def _sauvegarder_analyse_historique(self, resultat: ResultatDecision) -> None:
+        """
+        Sauvegarde le résultat de l'analyse dans l'historique.
+        
+        Args:
+            resultat: Résultat de l'algorithme de décision
+        """
+        ville = self.gestionnaire_config.obtenir_ville_actuelle()
+        
+        # Créer les conditions d'analyse
+        conditions = ConditionsAnalyse(
+            ville=ville.nom,
+            pays=ville.pays,
+            indice_uv=self.donnees_env.indice_uv,
+            niveau_uv=self.donnees_env.niveau_uv,
+            humidite=self.donnees_env.humidite_relative,
+            niveau_humidite=self.donnees_env.niveau_humidite,
+            temperature=self.donnees_env.temperature,
+            pm2_5=self.donnees_env.pm2_5,
+            niveau_pollution=self.donnees_env.niveau_pollution
+        )
+        
+        # Convertir les produits par moment
+        def convertir_produits(produits_list, exclus_dict):
+            return [
+                ProduitAnalyse(
+                    nom=p.nom,
+                    category=p.category.value,
+                    moment=p.moment.value,
+                    active_tag=p.active_tag.value,
+                    exclu=False,
+                    raison_exclusion=""
+                )
+                for p in produits_list
+            ]
+        
+        produits_matin = convertir_produits(resultat.matin.produits, {})
+        produits_journee = convertir_produits(resultat.journee.produits, {})
+        produits_soir = convertir_produits(resultat.soir.produits, {})
+        
+        # Ajouter à l'historique
+        self.gestionnaire_historique.ajouter_analyse(
+            conditions=conditions,
+            produits_matin=produits_matin,
+            produits_journee=produits_journee,
+            produits_soir=produits_soir,
+            alertes=resultat.filtres_appliques
+        )
     
     def _ouvrir_selection_ville(self) -> None:
         """Ouvre la fenêtre de sélection de ville."""
