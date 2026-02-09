@@ -120,7 +120,84 @@ Retourne UNIQUEMENT le JSON, rien d'autre."""
 
 
 # =============================================================================
-# STRUCTURE RÉSULTAT
+# PROMPT EXPERT POUR ANALYSE DE ROUTINE QUOTIDIENNE
+# =============================================================================
+
+PROMPT_ANALYSE_ROUTINE = """Tu es DermaLogic, un assistant dermatologue expert avec 20 ans d'expérience. Tu aides les utilisateurs à optimiser leur routine de soins quotidienne en fonction de leurs produits, des conditions environnementales, et de leur état personnel.
+
+Tu dois créer une routine personnalisée en 3 moments : MATIN, JOURNÉE, SOIR.
+
+# INFORMATIONS UTILISATEUR
+
+## Profil permanent :
+{profil_utilisateur}
+
+## État du jour :
+{etat_quotidien}
+
+## Instructions personnalisées (si présentes) :
+{instructions}
+
+# CONDITIONS ENVIRONNEMENTALES
+
+Ville : {ville}
+Température : {temperature}°C
+Indice UV : {indice_uv} ({niveau_uv})
+Humidité : {humidite}% ({niveau_humidite})
+Pollution PM2.5 : {pm2_5} µg/m³ ({niveau_pollution})
+
+# PRODUITS DISPONIBLES
+
+{liste_produits}
+
+# RÈGLES D'EXPERTISE
+
+1. **Sécurité UV** : Si UV > 3, JAMAIS de produits photosensibles le matin ou en journée
+2. **Hydratation** : Si humidité < 45%, privilégier les textures riches (occlusivity >= 4)
+3. **Légèreté** : Si humidité > 70%, privilégier les textures légères
+4. **Pollution** : Si PM2.5 > 25, recommander un nettoyage approfondi le soir
+5. **Stress** : Si stress élevé (>7), éviter les actifs irritants comme les acides forts
+6. **Ordre d'application** : Du plus léger au plus épais, actifs avant crèmes
+7. **Protection** : Toujours terminer le matin par un SPF si UV > 1
+
+# FORMAT DE RÉPONSE
+
+Réponds en JSON avec cette structure EXACTE :
+{{
+    "matin": {{
+        "conseils": "Texte avec les étapes de la routine matin...",
+        "produits": [
+            {{"nom": "Nom du produit", "justification": "Pourquoi ce produit..."}}
+        ]
+    }},
+    "journee": {{
+        "conseils": "Texte avec les conseils pour la journée...",
+        "produits": [
+            {{"nom": "Nom du produit", "justification": "Pourquoi ce produit..."}}
+        ]
+    }},
+    "soir": {{
+        "conseils": "Texte avec les étapes de la routine soir...",
+        "produits": [
+            {{"nom": "Nom du produit", "justification": "Pourquoi ce produit..."}}
+        ]
+    }},
+    "alertes": ["Alerte 1 si nécessaire", "Alerte 2..."]
+}}
+
+RÈGLES DE RÉPONSE :
+1. Réponds UNIQUEMENT avec le JSON, rien d'autre
+2. Les conseils doivent être concis, personnalisés et bienveillants
+3. Justifie chaque produit en 1-2 phrases
+4. N'inclus que les produits vraiment nécessaires
+5. Adapte ton discours au niveau de stress (plus doux si stress élevé)
+6. Si un moment ne nécessite rien de particulier, indique "Pas de routine spécifique"
+
+Génère maintenant la routine optimale."""
+
+
+# =============================================================================
+# STRUCTURE RÉSULTAT ANALYSE PRODUIT
 # =============================================================================
 
 @dataclass
@@ -135,6 +212,60 @@ class ResultatAnalyseIA:
     cleansing_power: int = 3
     active_tag: str = "hydration"
     erreur: str = ""
+
+
+# =============================================================================
+# STRUCTURE RÉSULTAT ANALYSE ROUTINE
+# =============================================================================
+
+@dataclass
+class ProduitRoutine:
+    """Un produit dans la routine avec sa justification."""
+    nom: str
+    justification: str
+
+
+@dataclass
+class RoutineMoment:
+    """Routine pour un moment de la journée."""
+    conseils: str
+    produits: list  # Liste de ProduitRoutine
+    
+    @classmethod
+    def from_dict(cls, data: dict) -> "RoutineMoment":
+        """Crée une instance depuis un dictionnaire."""
+        produits = []
+        for p in data.get("produits", []):
+            if isinstance(p, dict):
+                produits.append(ProduitRoutine(
+                    nom=p.get("nom", ""),
+                    justification=p.get("justification", "")
+                ))
+        return cls(
+            conseils=data.get("conseils", ""),
+            produits=produits
+        )
+
+
+@dataclass
+class ResultatRoutineIA:
+    """Résultat complet de l'analyse de routine par l'IA."""
+    succes: bool
+    matin: RoutineMoment = None
+    journee: RoutineMoment = None
+    soir: RoutineMoment = None
+    alertes: list = None
+    erreur: str = ""
+    
+    def __post_init__(self):
+        if self.matin is None:
+            self.matin = RoutineMoment("", [])
+        if self.journee is None:
+            self.journee = RoutineMoment("", [])
+        if self.soir is None:
+            self.soir = RoutineMoment("", [])
+        if self.alertes is None:
+            self.alertes = []
 
 
 # =============================================================================
@@ -302,6 +433,124 @@ class ClientGemini:
             cleansing_power=cleansing_power,
             active_tag=active_tag
         )
+    
+    def analyser_routine(
+        self,
+        produits: list,
+        donnees_env: dict,
+        profil_utilisateur: str,
+        etat_quotidien: str,
+        instructions: str = ""
+    ) -> ResultatRoutineIA:
+        """
+        Analyse la routine quotidienne optimale basée sur tous les paramètres.
+        
+        Args:
+            produits: Liste des produits disponibles (dicts avec nom, category, etc.)
+            donnees_env: Données environnementales (dict avec ville, uv, humidite, etc.)
+            profil_utilisateur: Texte décrivant le profil permanent
+            etat_quotidien: Texte décrivant l'état du jour
+            instructions: Instructions personnalisées optionnelles
+        
+        Returns:
+            ResultatRoutineIA avec les conseils pour matin, journée, soir
+        """
+        # Formater la liste des produits
+        liste_produits = []
+        for p in produits:
+            liste_produits.append(
+                f"- {p.get('nom', 'Inconnu')} "
+                f"(catégorie: {p.get('category', 'inconnu')}, "
+                f"moment: {p.get('moment', 'tous')}, "
+                f"photosensible: {'oui' if p.get('photosensitive') else 'non'}, "
+                f"occlusivité: {p.get('occlusivity', 3)}/5, "
+                f"action: {p.get('active_tag', 'hydration')})"
+            )
+        
+        # Construire le prompt
+        prompt = PROMPT_ANALYSE_ROUTINE.format(
+            profil_utilisateur=profil_utilisateur or "Non renseigné",
+            etat_quotidien=etat_quotidien or "Non renseigné",
+            instructions=instructions or "Aucune instruction particulière",
+            ville=donnees_env.get("ville", "Inconnue"),
+            temperature=donnees_env.get("temperature", "N/A"),
+            indice_uv=donnees_env.get("indice_uv", 0),
+            niveau_uv=donnees_env.get("niveau_uv", "Inconnu"),
+            humidite=donnees_env.get("humidite", 50),
+            niveau_humidite=donnees_env.get("niveau_humidite", "Normal"),
+            pm2_5=donnees_env.get("pm2_5", 0),
+            niveau_pollution=donnees_env.get("niveau_pollution", "Bon"),
+            liste_produits="\n".join(liste_produits) if liste_produits else "Aucun produit enregistré"
+        )
+        
+        # Augmenter les tokens pour cette requête
+        headers = {"Content-Type": "application/json"}
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": 0.4,
+                "maxOutputTokens": 2048
+            }
+        }
+        
+        try:
+            response = requests.post(
+                f"{self.api_url}?key={self.api_key}",
+                headers=headers,
+                json=payload,
+                timeout=60
+            )
+            response.raise_for_status()
+            
+            data = response.json()
+            candidates = data.get("candidates", [])
+            
+            if not candidates:
+                return ResultatRoutineIA(
+                    succes=False,
+                    erreur="Pas de réponse de Gemini"
+                )
+            
+            content = candidates[0].get("content", {})
+            parts = content.get("parts", [])
+            
+            if not parts:
+                return ResultatRoutineIA(
+                    succes=False,
+                    erreur="Réponse vide de Gemini"
+                )
+            
+            reponse_texte = parts[0].get("text", "").strip()
+            print(f"[Gemini Routine] Réponse: {reponse_texte[:500]}...")
+            
+            # Extraire le JSON
+            data_json = self._extraire_json(reponse_texte)
+            
+            if data_json is None:
+                return ResultatRoutineIA(
+                    succes=False,
+                    erreur=f"Impossible de parser: {reponse_texte[:200]}..."
+                )
+            
+            # Construire le résultat
+            return ResultatRoutineIA(
+                succes=True,
+                matin=RoutineMoment.from_dict(data_json.get("matin", {})),
+                journee=RoutineMoment.from_dict(data_json.get("journee", {})),
+                soir=RoutineMoment.from_dict(data_json.get("soir", {})),
+                alertes=data_json.get("alertes", [])
+            )
+            
+        except requests.RequestException as e:
+            return ResultatRoutineIA(
+                succes=False,
+                erreur=f"Erreur réseau: {str(e)}"
+            )
+        except Exception as e:
+            return ResultatRoutineIA(
+                succes=False,
+                erreur=f"Erreur inattendue: {str(e)}"
+            )
 
 
 # =============================================================================

@@ -34,7 +34,13 @@ from api.open_meteo import (
     rechercher_villes,
     Localisation,
 )
-from api.gemini import ClientGemini, ResultatAnalyseIA
+from api.gemini import (
+    ClientGemini, 
+    ResultatAnalyseIA,
+    ResultatRoutineIA,
+    ProduitRoutine,
+    RoutineMoment,
+)
 from core.algorithme import (
     ProduitDerma,
     Categorie,
@@ -52,6 +58,13 @@ from core.historique import (
     ResultatAnalyseHistorique,
     creer_conditions_depuis_env,
     creer_produit_depuis_resultat,
+)
+from core.profil import (
+    TypePeau,
+    ProblemePeau,
+    ProfilUtilisateur,
+    EtatQuotidien,
+    GestionnaireProfil,
 )
 
 
@@ -440,18 +453,35 @@ class PageAccueil(ctk.CTkFrame):
         self.carte_temp = CarteEnvironnement(frame_cartes, "Temperature")
         self.carte_temp.pack(side="left", fill="both", expand=True, padx=4)
         
-        # ===== BOUTON ANALYSER =====
-        self.btn_analyser = ctk.CTkButton(
-            self,
-            text="ANALYSER MES PRODUITS",
+        # ===== BOUTONS D'ANALYSE =====
+        frame_btns_analyse = ctk.CTkFrame(self, fg_color="transparent")
+        frame_btns_analyse.pack(fill="x", padx=20, pady=(0, 12))
+        
+        # Bouton analyse simple (algorithme local)
+        self.btn_analyse_simple = ctk.CTkButton(
+            frame_btns_analyse,
+            text="⚡ Analyse rapide",
             command=self.app.lancer_analyse,
             fg_color=COULEUR_ACCENT,
             hover_color=COULEUR_ACCENT_HOVER,
             text_color=COULEUR_FOND,
-            font=ctk.CTkFont(size=15, weight="bold"),
+            font=ctk.CTkFont(size=14, weight="bold"),
             height=45
         )
-        self.btn_analyser.pack(fill="x", padx=20, pady=(0, 12))
+        self.btn_analyse_simple.pack(side="left", fill="x", expand=True, padx=(0, 5))
+        
+        # Bouton analyse IA avec instructions
+        self.btn_analyse_ia = ctk.CTkButton(
+            frame_btns_analyse,
+            text="🤖 Analyse IA personnalisée",
+            command=self.app.ouvrir_analyse_ia,
+            fg_color="#9b59b6",
+            hover_color="#8e44ad",
+            text_color="#fff",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            height=45
+        )
+        self.btn_analyse_ia.pack(side="left", fill="x", expand=True, padx=(5, 0))
         
         # ===== BARRE DE FILTRES =====
         self.frame_filtres = ctk.CTkFrame(
@@ -1105,6 +1135,315 @@ class PageHistorique(ctk.CTkFrame):
 
 
 # =============================================================================
+# PAGE PROFIL UTILISATEUR
+# =============================================================================
+
+class PageProfil(ctk.CTkFrame):
+    """
+    Page de gestion du profil utilisateur.
+    
+    Permet de configurer :
+    - Type de peau (permanent)
+    - Problèmes de peau / maladies (permanent)
+    - Notes personnelles permanentes
+    - État quotidien (stress, état du jour)
+    """
+    
+    def __init__(self, master, gestionnaire_profil: GestionnaireProfil, **kwargs):
+        super().__init__(master, **kwargs)
+        self.gestionnaire = gestionnaire_profil
+        self.configure(fg_color="transparent")
+        self._creer_interface()
+    
+    def _creer_interface(self) -> None:
+        """Construit l'interface de la page."""
+        
+        # Header
+        frame_header = ctk.CTkFrame(self, fg_color="transparent")
+        frame_header.pack(fill="x", padx=20, pady=15)
+        
+        ctk.CTkLabel(
+            frame_header,
+            text="👤 Mon Profil",
+            font=ctk.CTkFont(size=24, weight="bold")
+        ).pack(side="left")
+        
+        # Scrollable content
+        self.frame_scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self.frame_scroll.pack(fill="both", expand=True, padx=20, pady=(0, 20))
+        
+        # ===== SECTION TYPE DE PEAU =====
+        self._creer_section_type_peau()
+        
+        # ===== SECTION PROBLÈMES DE PEAU =====
+        self._creer_section_problemes()
+        
+        # ===== SECTION NOTES PERMANENTES =====
+        self._creer_section_notes()
+        
+        # ===== SECTION ÉTAT QUOTIDIEN =====
+        self._creer_section_quotidien()
+    
+    def _creer_section_type_peau(self) -> None:
+        """Crée la section type de peau."""
+        frame = ctk.CTkFrame(self.frame_scroll, fg_color=COULEUR_PANNEAU, corner_radius=12)
+        frame.pack(fill="x", pady=8)
+        
+        # Header
+        ctk.CTkLabel(
+            frame,
+            text="🧬 Type de peau",
+            font=ctk.CTkFont(size=16, weight="bold")
+        ).pack(anchor="w", padx=15, pady=(12, 5))
+        
+        ctk.CTkLabel(
+            frame,
+            text="Sélectionnez votre type de peau (sauvegardé)",
+            font=ctk.CTkFont(size=11),
+            text_color=COULEUR_TEXTE_SECONDAIRE
+        ).pack(anchor="w", padx=15)
+        
+        # Options
+        frame_options = ctk.CTkFrame(frame, fg_color="transparent")
+        frame_options.pack(fill="x", padx=15, pady=10)
+        
+        types = [
+            ("normale", "Normale"), 
+            ("seche", "Sèche"),
+            ("grasse", "Grasse"),
+            ("mixte", "Mixte"),
+            ("sensible", "Sensible")
+        ]
+        
+        self.var_type_peau = ctk.StringVar(value=self.gestionnaire.profil.type_peau.value)
+        
+        for valeur, label in types:
+            btn = ctk.CTkRadioButton(
+                frame_options,
+                text=label,
+                variable=self.var_type_peau,
+                value=valeur,
+                command=self._on_type_peau_change,
+                fg_color=COULEUR_ACCENT,
+                hover_color=COULEUR_ACCENT_HOVER
+            )
+            btn.pack(side="left", padx=10)
+    
+    def _on_type_peau_change(self) -> None:
+        """Callback quand le type de peau change."""
+        type_peau = TypePeau.from_str(self.var_type_peau.get())
+        self.gestionnaire.modifier_type_peau(type_peau)
+    
+    def _creer_section_problemes(self) -> None:
+        """Crée la section problèmes de peau."""
+        frame = ctk.CTkFrame(self.frame_scroll, fg_color=COULEUR_PANNEAU, corner_radius=12)
+        frame.pack(fill="x", pady=8)
+        
+        # Header
+        ctk.CTkLabel(
+            frame,
+            text="⚠️ Problèmes de peau",
+            font=ctk.CTkFont(size=16, weight="bold")
+        ).pack(anchor="w", padx=15, pady=(12, 5))
+        
+        ctk.CTkLabel(
+            frame,
+            text="Sélectionnez vos problèmes de peau ou maladies (sauvegardés)",
+            font=ctk.CTkFont(size=11),
+            text_color=COULEUR_TEXTE_SECONDAIRE
+        ).pack(anchor="w", padx=15)
+        
+        # Grille de checkboxes
+        frame_grid = ctk.CTkFrame(frame, fg_color="transparent")
+        frame_grid.pack(fill="x", padx=15, pady=10)
+        
+        problemes = [
+            ("acne", "Acné"),
+            ("eczema", "Eczéma"),
+            ("rosacee", "Rosacée"),
+            ("psoriasis", "Psoriasis"),
+            ("hyperpigmentation", "Hyperpigmentation"),
+            ("rides", "Rides / Ridules"),
+            ("pores_dilates", "Pores dilatés"),
+            ("deshydratation", "Déshydratation"),
+            ("taches", "Taches pigmentaires"),
+            ("rougeurs", "Rougeurs")
+        ]
+        
+        self.vars_problemes = {}
+        
+        for i, (valeur, label) in enumerate(problemes):
+            var = ctk.BooleanVar(value=valeur in self.gestionnaire.profil.problemes)
+            self.vars_problemes[valeur] = var
+            
+            cb = ctk.CTkCheckBox(
+                frame_grid,
+                text=label,
+                variable=var,
+                command=lambda v=valeur: self._on_probleme_change(v),
+                fg_color=COULEUR_ACCENT,
+                hover_color=COULEUR_ACCENT_HOVER,
+                width=150
+            )
+            row, col = divmod(i, 3)
+            cb.grid(row=row, column=col, padx=5, pady=5, sticky="w")
+    
+    def _on_probleme_change(self, probleme: str) -> None:
+        """Callback quand un problème est coché/décoché."""
+        if self.vars_problemes[probleme].get():
+            self.gestionnaire.ajouter_probleme(probleme)
+        else:
+            self.gestionnaire.retirer_probleme(probleme)
+    
+    def _creer_section_notes(self) -> None:
+        """Crée la section notes permanentes."""
+        frame = ctk.CTkFrame(self.frame_scroll, fg_color=COULEUR_PANNEAU, corner_radius=12)
+        frame.pack(fill="x", pady=8)
+        
+        # Header
+        ctk.CTkLabel(
+            frame,
+            text="📝 Notes personnelles",
+            font=ctk.CTkFont(size=16, weight="bold")
+        ).pack(anchor="w", padx=15, pady=(12, 5))
+        
+        ctk.CTkLabel(
+            frame,
+            text="Informations permanentes (allergies, préférences, etc.)",
+            font=ctk.CTkFont(size=11),
+            text_color=COULEUR_TEXTE_SECONDAIRE
+        ).pack(anchor="w", padx=15)
+        
+        # Zone de texte
+        self.txt_notes = ctk.CTkTextbox(
+            frame,
+            height=80,
+            fg_color=COULEUR_CARTE,
+            border_width=1,
+            border_color=COULEUR_BORDURE
+        )
+        self.txt_notes.pack(fill="x", padx=15, pady=10)
+        self.txt_notes.insert("1.0", self.gestionnaire.profil.notes_permanentes)
+        
+        # Bouton sauvegarder
+        ctk.CTkButton(
+            frame,
+            text="💾 Sauvegarder les notes",
+            command=self._sauvegarder_notes,
+            fg_color=COULEUR_ACCENT,
+            hover_color=COULEUR_ACCENT_HOVER,
+            width=180
+        ).pack(padx=15, pady=(0, 12))
+    
+    def _sauvegarder_notes(self) -> None:
+        """Sauvegarde les notes permanentes."""
+        notes = self.txt_notes.get("1.0", "end-1c")
+        self.gestionnaire.modifier_notes(notes)
+        messagebox.showinfo("Sauvegardé", "Vos notes ont été sauvegardées !")
+    
+    def _creer_section_quotidien(self) -> None:
+        """Crée la section état quotidien."""
+        frame = ctk.CTkFrame(self.frame_scroll, fg_color=COULEUR_PANNEAU, corner_radius=12)
+        frame.pack(fill="x", pady=8)
+        
+        # Header
+        ctk.CTkLabel(
+            frame,
+            text="📅 État du jour",
+            font=ctk.CTkFont(size=16, weight="bold")
+        ).pack(anchor="w", padx=15, pady=(12, 5))
+        
+        ctk.CTkLabel(
+            frame,
+            text="Ces informations sont utilisées pour l'analyse mais non sauvegardées",
+            font=ctk.CTkFont(size=11),
+            text_color=COULEUR_TEXTE_SECONDAIRE
+        ).pack(anchor="w", padx=15, pady=(0, 10))
+        
+        # Niveau de stress
+        frame_stress = ctk.CTkFrame(frame, fg_color="transparent")
+        frame_stress.pack(fill="x", padx=15, pady=5)
+        
+        ctk.CTkLabel(
+            frame_stress,
+            text="Niveau de stress :",
+            font=ctk.CTkFont(size=13)
+        ).pack(side="left")
+        
+        self.label_stress = ctk.CTkLabel(
+            frame_stress,
+            text=f"{self.gestionnaire.etat_quotidien.niveau_stress}/10",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            text_color=COULEUR_ACCENT
+        )
+        self.label_stress.pack(side="right", padx=10)
+        
+        self.slider_stress = ctk.CTkSlider(
+            frame,
+            from_=1,
+            to=10,
+            number_of_steps=9,
+            command=self._on_stress_change,
+            fg_color=COULEUR_CARTE,
+            progress_color=COULEUR_ACCENT,
+            button_color=COULEUR_ACCENT,
+            button_hover_color=COULEUR_ACCENT_HOVER
+        )
+        self.slider_stress.pack(fill="x", padx=15, pady=5)
+        self.slider_stress.set(self.gestionnaire.etat_quotidien.niveau_stress)
+        
+        # État de la peau du jour
+        ctk.CTkLabel(
+            frame,
+            text="État de la peau aujourd'hui (optionnel) :",
+            font=ctk.CTkFont(size=13)
+        ).pack(anchor="w", padx=15, pady=(15, 5))
+        
+        self.entry_etat_jour = ctk.CTkEntry(
+            frame,
+            placeholder_text="Ex: Un peu sèche, quelques rougeurs...",
+            fg_color=COULEUR_CARTE,
+            border_color=COULEUR_BORDURE,
+            height=35
+        )
+        self.entry_etat_jour.pack(fill="x", padx=15, pady=(0, 15))
+        self.entry_etat_jour.bind("<KeyRelease>", self._on_etat_jour_change)
+    
+    def _on_stress_change(self, valeur: float) -> None:
+        """Callback quand le niveau de stress change."""
+        niveau = int(valeur)
+        self.gestionnaire.definir_stress(niveau)
+        self.label_stress.configure(text=f"{niveau}/10")
+        
+        # Couleur selon le niveau
+        if niveau <= 3:
+            couleur = COULEUR_ACCENT
+        elif niveau <= 6:
+            couleur = "#f9ed69"
+        else:
+            couleur = COULEUR_DANGER
+        self.label_stress.configure(text_color=couleur)
+    
+    def _on_etat_jour_change(self, event=None) -> None:
+        """Callback quand l'état du jour change."""
+        etat = self.entry_etat_jour.get()
+        self.gestionnaire.definir_etat_jour(etat)
+    
+    def actualiser(self) -> None:
+        """Actualise l'affichage (recharge les données)."""
+        # Type de peau
+        self.var_type_peau.set(self.gestionnaire.profil.type_peau.value)
+        
+        # Problèmes
+        for valeur, var in self.vars_problemes.items():
+            var.set(valeur in self.gestionnaire.profil.problemes)
+        
+        # Notes
+        self.txt_notes.delete("1.0", "end")
+        self.txt_notes.insert("1.0", self.gestionnaire.profil.notes_permanentes)
+
+
+# =============================================================================
 # FORMULAIRE D'AJOUT DE PRODUIT
 # =============================================================================
 
@@ -1505,6 +1844,153 @@ class FenetreRechercheIA(ctk.CTkToplevel):
                 text_color=COULEUR_DANGER
             )
             self.btn_analyser.configure(text="Réessayer", state="normal")
+
+
+# =============================================================================
+# FENÊTRE D'ANALYSE IA PERSONNALISÉE
+# =============================================================================
+
+class FenetreAnalyseIA(ctk.CTkToplevel):
+    """
+    Fenêtre pour lancer une analyse IA personnalisée.
+    
+    Permet d'entrer des instructions personnalisées qui seront
+    envoyées à l'IA avec le profil et les conditions environnementales.
+    """
+    
+    def __init__(self, parent, app, callback):
+        """
+        Initialise la fenêtre d'analyse IA.
+        
+        Args:
+            parent: Widget parent
+            app: Application principale (pour accéder aux gestionnaires)
+            callback: Fonction à appeler avec le résultat
+        """
+        super().__init__(parent)
+        self.app = app
+        self.callback = callback
+        
+        self.title("🤖 Analyse IA personnalisée")
+        self.geometry("550x400")
+        self.configure(fg_color=COULEUR_FOND)
+        self.transient(parent)
+        self.grab_set()
+        
+        self._creer_widgets()
+    
+    def _creer_widgets(self) -> None:
+        """Construit l'interface."""
+        
+        # Titre
+        ctk.CTkLabel(
+            self,
+            text="🤖 Analyse IA personnalisée",
+            font=ctk.CTkFont(size=20, weight="bold")
+        ).pack(pady=20)
+        
+        # Description
+        ctk.CTkLabel(
+            self,
+            text="L'IA analysera vos produits en tenant compte de :",
+            font=ctk.CTkFont(size=12),
+            text_color=COULEUR_TEXTE_SECONDAIRE
+        ).pack(pady=(0, 5))
+        
+        # Liste des éléments pris en compte
+        infos = ctk.CTkFrame(self, fg_color=COULEUR_PANNEAU, corner_radius=10)
+        infos.pack(fill="x", padx=30, pady=10)
+        
+        elements = [
+            "✓ Votre profil (type de peau, problèmes)",
+            "✓ Conditions météo actuelles (UV, humidité, pollution)",
+            "✓ Votre niveau de stress du jour",
+            "✓ Vos produits enregistrés"
+        ]
+        for elem in elements:
+            ctk.CTkLabel(
+                infos,
+                text=elem,
+                font=ctk.CTkFont(size=11),
+                anchor="w"
+            ).pack(anchor="w", padx=15, pady=2)
+        
+        # Zone d'instructions personnalisées
+        ctk.CTkLabel(
+            self,
+            text="Instructions personnalisées (optionnel) :",
+            font=ctk.CTkFont(size=13, weight="bold")
+        ).pack(anchor="w", padx=30, pady=(15, 5))
+        
+        self.txt_instructions = ctk.CTkTextbox(
+            self,
+            height=100,
+            fg_color=COULEUR_CARTE,
+            border_width=1,
+            border_color=COULEUR_BORDURE
+        )
+        self.txt_instructions.pack(fill="x", padx=30, pady=5)
+        self.txt_instructions.insert(
+            "1.0",
+            "Ex: J'ai un rendez-vous important ce soir, ma peau est un peu irritée..."
+        )
+        self.txt_instructions.bind("<FocusIn>", self._vider_placeholder)
+        
+        # Boutons
+        frame_btns = ctk.CTkFrame(self, fg_color="transparent")
+        frame_btns.pack(fill="x", padx=30, pady=20)
+        
+        ctk.CTkButton(
+            frame_btns,
+            text="Annuler",
+            command=self.destroy,
+            fg_color=COULEUR_CARTE,
+            hover_color=COULEUR_CARTE_HOVER,
+            width=120
+        ).pack(side="left")
+        
+        self.btn_lancer = ctk.CTkButton(
+            frame_btns,
+            text="🚀 Lancer l'analyse",
+            command=self._lancer_analyse,
+            fg_color="#9b59b6",
+            hover_color="#8e44ad",
+            width=180
+        )
+        self.btn_lancer.pack(side="right")
+        
+        # Status
+        self.label_status = ctk.CTkLabel(
+            self,
+            text="",
+            font=ctk.CTkFont(size=11),
+            text_color=COULEUR_TEXTE_SECONDAIRE
+        )
+        self.label_status.pack(pady=(0, 10))
+    
+    def _vider_placeholder(self, event=None) -> None:
+        """Vide le placeholder au focus."""
+        contenu = self.txt_instructions.get("1.0", "end-1c")
+        if contenu.startswith("Ex:"):
+            self.txt_instructions.delete("1.0", "end")
+    
+    def _lancer_analyse(self) -> None:
+        """Lance l'analyse IA."""
+        self.btn_lancer.configure(state="disabled", text="Analyse en cours...")
+        self.label_status.configure(
+            text="⏳ Consultation de l'IA en cours...",
+            text_color=COULEUR_ACCENT
+        )
+        self.update()
+        
+        # Récupérer les instructions
+        instructions = self.txt_instructions.get("1.0", "end-1c")
+        if instructions.startswith("Ex:"):
+            instructions = ""
+        
+        # Appeler le callback avec les instructions
+        self.callback(instructions)
+        self.destroy()
 
 
 # =============================================================================
@@ -1965,6 +2451,7 @@ class ApplicationPrincipale(ctk.CTk):
         gestionnaire: Gestionnaire de produits
         gestionnaire_config: Gestionnaire de configuration
         gestionnaire_historique: Gestionnaire d'historique des analyses
+        gestionnaire_profil: Gestionnaire de profil utilisateur
         donnees_env: Données environnementales actuelles
     """
     
@@ -1984,7 +2471,11 @@ class ApplicationPrincipale(ctk.CTk):
         self.gestionnaire_config = GestionnaireConfig()
         self.gestionnaire = GestionnaireProduits()
         self.gestionnaire_historique = GestionnaireHistorique()
+        self.gestionnaire_profil = GestionnaireProfil()
         self.donnees_env: DonneesEnvironnementales = None
+        
+        # Client Gemini pour l'analyse IA
+        self.client_gemini = ClientGemini()
         
         # Initialiser le client météo avec la ville sauvegardée
         ville_config = self.gestionnaire_config.obtenir_ville_actuelle()
@@ -2050,6 +2541,16 @@ class ApplicationPrincipale(ctk.CTk):
         )
         self.btn_historique.pack(side="left", padx=5)
         
+        self.btn_profil = ctk.CTkButton(
+            frame_btns,
+            text="👤 Mon Profil",
+            command=lambda: self._afficher_page("profil"),
+            fg_color="transparent",
+            hover_color=COULEUR_CARTE_HOVER,
+            width=110
+        )
+        self.btn_profil.pack(side="left", padx=5)
+        
         # Sélection de ville (à droite)
         frame_ville = ctk.CTkFrame(self.frame_nav, fg_color="transparent")
         frame_ville.pack(side="right", padx=20)
@@ -2081,6 +2582,7 @@ class ApplicationPrincipale(ctk.CTk):
         self.page_accueil = PageAccueil(self.frame_pages, self)
         self.page_produits = PageProduits(self.frame_pages, self.gestionnaire)
         self.page_historique = PageHistorique(self.frame_pages, self.gestionnaire_historique)
+        self.page_profil = PageProfil(self.frame_pages, self.gestionnaire_profil)
     
     def _afficher_page(self, nom: str) -> None:
         """
@@ -2093,11 +2595,13 @@ class ApplicationPrincipale(ctk.CTk):
         self.page_accueil.pack_forget()
         self.page_produits.pack_forget()
         self.page_historique.pack_forget()
+        self.page_profil.pack_forget()
         
         # Reset des boutons
         self.btn_accueil.configure(fg_color="transparent", text_color="#fff")
         self.btn_produits.configure(fg_color="transparent", text_color="#fff")
         self.btn_historique.configure(fg_color="transparent", text_color="#fff")
+        self.btn_profil.configure(fg_color="transparent", text_color="#fff")
         
         # Afficher la page demandée
         if nom == "accueil":
@@ -2111,6 +2615,10 @@ class ApplicationPrincipale(ctk.CTk):
             self.page_historique.pack(fill="both", expand=True)
             self.page_historique.actualiser()
             self.btn_historique.configure(fg_color=COULEUR_ACCENT, text_color=COULEUR_FOND)
+        elif nom == "profil":
+            self.page_profil.pack(fill="both", expand=True)
+            self.page_profil.actualiser()
+            self.btn_profil.configure(fg_color=COULEUR_ACCENT, text_color=COULEUR_FOND)
     
     # =========================================================================
     # HELPERS COULEUR

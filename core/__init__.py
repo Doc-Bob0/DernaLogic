@@ -7,6 +7,7 @@ Ce module contient la logique métier :
 - Modèles de données (produits, conditions, résultats)
 - Gestionnaire de configuration
 - Historique des analyses
+- Profil utilisateur
 """
 
 from core.algorithme import (
@@ -47,6 +48,14 @@ from core.historique import (
     DUREE_RECENTES_JOURS,
 )
 
+from core.profil import (
+    TypePeau,
+    ProblemePeau,
+    ProfilUtilisateur,
+    EtatQuotidien,
+    GestionnaireProfil,
+)
+
 __all__ = [
     # Énumérations
     "Categorie",
@@ -81,4 +90,12 @@ __all__ = [
     "creer_conditions_depuis_env",
     "creer_produit_depuis_resultat",
     "DUREE_RECENTES_JOURS",
+    
+    # Profil
+    "TypePeau",
+    "ProblemePeau",
+    "ProfilUtilisateur",
+    "EtatQuotidien",
+    "GestionnaireProfil",
 ]
+
