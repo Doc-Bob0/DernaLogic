@@ -1,0 +1,11 @@
+# DermaLogic - Dépendances Python
+# ================================
+
+# Requêtes HTTP pour l'API Open-Meteo
+requests>=2.28.0
+
+# Interface graphique moderne
+customtkinter>=5.2.0
+
+# Traitement d'images (requis par CustomTkinter)
+Pillow>=9.0.0
