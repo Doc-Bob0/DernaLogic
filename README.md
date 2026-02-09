@@ -47,6 +47,8 @@ Application qui adapte votre protocole de soins aux conditions environnementales
 - 🔜 Export des recommandations
 - 🔜 Notifications quotidiennes
 - 🔜 Incompatibilités entre actifs
+- 🔜 Passer l'analyse par IA
+- 🔜 Conseil d'achat par IA
 
 ---
 
