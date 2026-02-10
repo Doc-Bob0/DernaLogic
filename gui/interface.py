@@ -81,6 +81,7 @@ COULEUR_ACCENT = "#4ecca3"
 COULEUR_ACCENT_HOVER = "#3db892"
 COULEUR_DANGER = "#e94560"
 COULEUR_TEXTE_SECONDAIRE = "#8b8b9e"
+COULEUR_BORDURE = "#2a2a4a"
 
 # Couleurs par catégorie de produit
 COULEURS_CATEGORIE = {
@@ -2749,11 +2750,11 @@ class ApplicationPrincipale(ctk.CTk):
         self.page_accueil.btn_actualiser.configure(text="Actualiser")
     
     def lancer_analyse(self) -> None:
-        """Lance l'analyse des produits et sauvegarde dans l'historique."""
+        """Lance l'analyse rapide des produits (algorithme local)."""
         if not self.donnees_env:
             messagebox.showwarning(
                 "Attention",
-                "Chargez d'abord les donnees meteo"
+                "Chargez d'abord les données météo"
             )
             return
         
@@ -2765,7 +2766,7 @@ class ApplicationPrincipale(ctk.CTk):
             )
             return
         
-        self.page_accueil.btn_analyser.configure(text="Analyse...")
+        self.page_accueil.btn_analyse_simple.configure(text="⏳ Analyse...")
         self.update()
         
         # Construire les conditions
@@ -2784,7 +2785,230 @@ class ApplicationPrincipale(ctk.CTk):
         
         # Afficher
         self.page_accueil.afficher_resultat(resultat)
-        self.page_accueil.btn_analyser.configure(text="ANALYSER MES PRODUITS")
+        self.page_accueil.btn_analyse_simple.configure(text="⚡ Analyse rapide")
+    
+    def ouvrir_analyse_ia(self) -> None:
+        """Ouvre la fenêtre d'analyse IA avec instructions personnalisées."""
+        if not self.donnees_env:
+            messagebox.showwarning(
+                "Attention",
+                "Chargez d'abord les données météo"
+            )
+            return
+        
+        produits = self.gestionnaire.obtenir_tous()
+        if not produits:
+            messagebox.showinfo(
+                "Info",
+                "Ajoutez d'abord des produits dans 'Mes Produits'"
+            )
+            return
+        
+        FenetreAnalyseIA(self, self, self._executer_analyse_ia)
+    
+    def _executer_analyse_ia(self, instructions: str = "") -> None:
+        """
+        Exécute l'analyse IA personnalisée.
+        
+        Args:
+            instructions: Instructions personnalisées de l'utilisateur
+        """
+        self.page_accueil.btn_analyse_ia.configure(
+            text="⏳ IA en cours...",
+            state="disabled"
+        )
+        self.update()
+        
+        try:
+            # Collecter les produits sous forme de dicts
+            produits = self.gestionnaire.obtenir_tous()
+            produits_dicts = []
+            for p in produits:
+                produits_dicts.append({
+                    "nom": p.nom,
+                    "category": p.category.value,
+                    "moment": p.moment.value,
+                    "photosensitive": p.photosensitive,
+                    "occlusivity": p.occlusivity,
+                    "cleansing_power": p.cleansing_power,
+                    "active_tag": p.active_tag.value
+                })
+            
+            # Collecter les données environnementales
+            ville = self.gestionnaire_config.obtenir_ville_actuelle()
+            donnees_env = {
+                "ville": ville.nom,
+                "temperature": self.donnees_env.temperature,
+                "indice_uv": self.donnees_env.indice_uv,
+                "niveau_uv": self.donnees_env.niveau_uv,
+                "humidite": self.donnees_env.humidite_relative,
+                "niveau_humidite": self.donnees_env.niveau_humidite,
+                "pm2_5": self.donnees_env.pm2_5,
+                "niveau_pollution": self.donnees_env.niveau_pollution
+            }
+            
+            # Contextes utilisateur
+            profil_texte = self.gestionnaire_profil.generer_contexte_ia()
+            etat_texte = self.gestionnaire_profil.etat_quotidien.to_prompt()
+            
+            # Appeler Gemini
+            resultat = self.client_gemini.analyser_routine(
+                produits=produits_dicts,
+                donnees_env=donnees_env,
+                profil_utilisateur=profil_texte,
+                etat_quotidien=etat_texte,
+                instructions=instructions
+            )
+            
+            if resultat.succes:
+                self._afficher_resultat_ia(resultat)
+            else:
+                messagebox.showerror(
+                    "Erreur IA",
+                    f"L'analyse IA a échoué :\n{resultat.erreur}"
+                )
+        
+        except Exception as e:
+            messagebox.showerror(
+                "Erreur",
+                f"Erreur lors de l'analyse IA :\n{str(e)}"
+            )
+        
+        finally:
+            self.page_accueil.btn_analyse_ia.configure(
+                text="🤖 Analyse IA personnalisée",
+                state="normal"
+            )
+    
+    def _afficher_resultat_ia(self, resultat: ResultatRoutineIA) -> None:
+        """
+        Affiche le résultat de l'analyse IA dans une fenêtre dédiée.
+        
+        Args:
+            resultat: Résultat de l'analyse de routine IA
+        """
+        fenetre = ctk.CTkToplevel(self)
+        fenetre.title("🤖 Résultat - Analyse IA")
+        fenetre.geometry("700x650")
+        fenetre.configure(fg_color=COULEUR_FOND)
+        fenetre.transient(self)
+        
+        # Header
+        ctk.CTkLabel(
+            fenetre,
+            text="🤖 Votre routine personnalisée",
+            font=ctk.CTkFont(size=22, weight="bold")
+        ).pack(pady=15)
+        
+        # Alertes si présentes
+        if resultat.alertes:
+            frame_alertes = ctk.CTkFrame(
+                fenetre, fg_color="#2a1a2a", corner_radius=10
+            )
+            frame_alertes.pack(fill="x", padx=20, pady=(0, 10))
+            for alerte in resultat.alertes:
+                ctk.CTkLabel(
+                    frame_alertes,
+                    text=f"⚠️ {alerte}",
+                    font=ctk.CTkFont(size=11),
+                    text_color=COULEUR_DANGER
+                ).pack(anchor="w", padx=12, pady=3)
+        
+        # Scrollable content
+        frame_scroll = ctk.CTkScrollableFrame(fenetre, fg_color="transparent")
+        frame_scroll.pack(fill="both", expand=True, padx=20, pady=(0, 10))
+        
+        # Afficher chaque moment
+        moments = [
+            ("☀️ MATIN", resultat.matin, COULEUR_ACCENT),
+            ("🌤️ JOURNÉE", resultat.journee, "#f9ed69"),
+            ("🌙 SOIR", resultat.soir, "#9b59b6")
+        ]
+        
+        for titre, moment, couleur in moments:
+            self._creer_section_moment_ia(frame_scroll, titre, moment, couleur)
+        
+        # Bouton fermer
+        ctk.CTkButton(
+            fenetre,
+            text="Fermer",
+            command=fenetre.destroy,
+            fg_color=COULEUR_ACCENT,
+            hover_color=COULEUR_ACCENT_HOVER,
+            width=150
+        ).pack(pady=15)
+    
+    def _creer_section_moment_ia(
+        self, parent, titre: str, moment: RoutineMoment, couleur: str
+    ) -> None:
+        """
+        Crée une section pour un moment de la journée dans le résultat IA.
+        
+        Args:
+            parent: Widget parent
+            titre: Titre du moment
+            moment: Données du moment
+            couleur: Couleur du header
+        """
+        frame = ctk.CTkFrame(parent, fg_color=COULEUR_PANNEAU, corner_radius=12)
+        frame.pack(fill="x", pady=8)
+        
+        # Header moment
+        header = ctk.CTkFrame(frame, fg_color=couleur, corner_radius=8, height=35)
+        header.pack(fill="x", padx=8, pady=(8, 5))
+        header.pack_propagate(False)
+        
+        ctk.CTkLabel(
+            header,
+            text=titre,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color=COULEUR_FOND
+        ).pack(expand=True)
+        
+        # Conseils
+        if moment.conseils:
+            ctk.CTkLabel(
+                frame,
+                text=moment.conseils,
+                font=ctk.CTkFont(size=12),
+                wraplength=600,
+                justify="left"
+            ).pack(anchor="w", padx=12, pady=8)
+        
+        # Produits avec justification (icône ℹ️)
+        if moment.produits:
+            for produit in moment.produits:
+                frame_produit = ctk.CTkFrame(
+                    frame, fg_color=COULEUR_CARTE, corner_radius=8
+                )
+                frame_produit.pack(fill="x", padx=12, pady=3)
+                
+                # Nom du produit
+                ctk.CTkLabel(
+                    frame_produit,
+                    text=f"• {produit.nom}",
+                    font=ctk.CTkFont(size=12, weight="bold"),
+                    anchor="w"
+                ).pack(side="left", padx=10, pady=6)
+                
+                # Bouton info (justification)
+                if produit.justification:
+                    btn_info = ctk.CTkButton(
+                        frame_produit,
+                        text="ℹ️",
+                        width=30,
+                        height=25,
+                        fg_color="transparent",
+                        hover_color=COULEUR_CARTE_HOVER,
+                        command=lambda j=produit.justification, n=produit.nom: 
+                            messagebox.showinfo(
+                                f"Justification - {n}", j
+                            )
+                    )
+                    btn_info.pack(side="right", padx=5, pady=4)
+        
+        # Espacement
+        ctk.CTkFrame(frame, fg_color="transparent", height=5).pack()
     
     def _sauvegarder_analyse_historique(self, resultat: ResultatDecision) -> None:
         """
