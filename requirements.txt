@@ -4,8 +4,11 @@
 # Requêtes HTTP pour l'API Open-Meteo
 requests>=2.28.0
 
-# Interface graphique moderne
-customtkinter>=5.2.0
+# Interface graphique cross-platform (Desktop, Web, Mobile)
+flet>=0.25.0
 
-# Traitement d'images (requis par CustomTkinter)
+# Ancien framework GUI (gardé comme référence, plus utilisé)
+# customtkinter>=5.2.0
+
+# Traitement d'images
 Pillow>=9.0.0

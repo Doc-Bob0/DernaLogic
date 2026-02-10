@@ -1,283 +1,104 @@
 # DermaLogic 🧬
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
+[![Flet](https://img.shields.io/badge/UI-Flet-purple.svg)](https://flet.dev)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![CustomTkinter](https://img.shields.io/badge/UI-CustomTkinter-lightblue.svg)](https://github.com/TomSchimansky/CustomTkinter)
 
-**Moteur de décision dermatologique intelligent**
+**Votre Dermatologue IA Personnel - Zéro Charge Cognitive**
 
-Application qui adapte votre protocole de soins aux conditions environnementales (UV, humidité, pollution) pour maximiser l'efficacité de vos actifs.
-
-![DermaLogic Screenshot](https://via.placeholder.com/800x450.png?text=DermaLogic+Screenshot)
+DermaLogic est une application cross-platform (Mobile, Web, Desktop) conçue pour gérer intégralement votre routine de soin. Elle s'adapte en temps réel à votre environnement et à votre état, sans que vous ayez à y penser.
 
 ---
 
-## 📋 Table des matières
+## 🎯 La Vision : "Zéro Charge Cognitive"
 
-- [Fonctionnalités](#-fonctionnalités)
-- [Installation](#-installation)
-- [Configuration](#-configuration)
-- [Utilisation](#-utilisation)
-- [Architecture](#-architecture)
-- [Structure des produits](#-structure-des-produits)
-- [Algorithme de décision](#-algorithme-de-décision)
-- [APIs utilisées](#-apis-utilisées)
-- [Contribuer](#-contribuer)
-- [Licence](#-licence)
+L'objectif de DermaLogic est simple : **L'application s'occupe de tout.**
 
----
+Fini les questions le matin devant le miroir. L'application sait où vous êtes, le temps qu'il fait, l'état de votre peau, et vous dit exactement quoi faire.
 
-## ✨ Fonctionnalités
+### Deux modes d'analyse IA
 
-### Actuelles
+Toute l'intelligence repose sur notre IA (Google Gemini) qui analyse votre situation :
 
-- ✅ Récupération des données météo en temps réel (UV, humidité, PM2.5, température)
-- ✅ Sélection de ville avec recherche géocodée
-- ✅ **Villes favorites** avec données météo en cache (utilisation hors-ligne)
-- ✅ Gestion des produits personnalisés avec persistance JSON
-- ✅ **Ajout de produits avec IA** (Google Gemini) - détection automatique des caractéristiques
-- ✅ Algorithme de filtrage intelligent (UV, texture, pureté)
-- ✅ Recommandations par moment de la journée (Matin / Journée / Soir)
-- ✅ **Historique des analyses** avec interface de visualisation (récentes / archives)
-- ✅ **Rotation automatique** des analyses > 2 semaines vers les archives
-- ✅ Interface graphique moderne avec CustomTkinter
+1. **⚡ Mode Simple (Automatique)** : L'IA croise votre profil et la météo locale (UV, humidité, pollution) pour générer votre routine instantanée. Un clic, une réponse.
+2. **🗣️ Mode Détaillé** : Vous pouvez dire à l'IA "J'ai la peau qui tire ce matin" ou "J'ai une soirée importante". Elle adaptera ses recommandations en conséquence.
 
-### Prévues
+### 📱 Mobile & Notifications
 
-- 🔜 Export des recommandations
-- 🔜 Notifications quotidiennes
-- 🔜 Incompatibilités entre actifs
-- 🔜 Passer l'analyse par IA
-- 🔜 Conseil d'achat par IA
+DermaLogic est conçue pour votre poche. Elle vous notifie aux moments clés :
+
+- ☀️ **Matin** : Routine protection & hydratation adaptée à la météo du jour.
+- 🌙 **Soir** : Routine nettoyage & réparation.
+- ⚠️ **Alertes** : "Pic de pollution dans 1h, prévoyez un nettoyage double ce soir."
 
 ---
 
-## 🚀 Installation
+## ✨ Fonctionnalités Clés
+
+- **🌍 Saisie Environnementale Automatique** : Détection des UV, de l'humidité, de la température et de la pollution (PM2.5) via Open-Meteo.
+- **🤖 Gestion des Produits par IA** : Ajoutez vos produits en les prenant simplement en photo ou en donnant leur nom. L'IA déduit leurs propriétés (occlusivité, photosensibilité, actifs).
+- **🔄 Cross-Platform** : Une seule application pour votre iPhone, votre Android et votre PC (grâce à Flet).
+- **📅 Historique Intelligent** : Suivez l'évolution de votre peau corrélée aux conditions environnementales.
+
+---
+
+## 🚀 Installation & Lancement
 
 ### Prérequis
 
 - Python 3.10+
-- Connexion internet (pour l'API météo)
+- Clé API Google Gemini (pour l'analyse IA)
 
-### 1. Cloner le dépôt
+### Installation
 
 ```bash
 git clone https://github.com/votre-username/DermaLogic.git
 cd DermaLogic
-```
-
-### 2. Créer un environnement virtuel (recommandé)
-
-```bash
-python -m venv venv
-# Windows
-venv\Scripts\activate
-# Linux/Mac
-source venv/bin/activate
-```
-
-### 3. Installer les dépendances
-
-```bash
 pip install -r requirements.txt
 ```
 
-### 4. Lancer l'application
+### Lancement
 
 ```bash
+# Lancer l'interface (Desktop/Web)
 python main.py
+
+# Pour tester la version Web spécifiquement
+flet run --web main.py
 ```
 
 ---
 
-## ⚙️ Configuration
+## ⚙️ Configuration (Clé IA)
 
-### Clé API Gemini (optionnel)
+Pour activer l'intelligence artificielle, créez un fichier `.env` à la racine :
 
-Pour utiliser la fonctionnalité **"Ajouter avec IA"**, vous devez configurer une clé API Google Gemini :
+```ini
+GEMINI_API_KEY=votre_cle_api_google_studio
+```
 
-1. Créez une clé sur [Google AI Studio](https://aistudio.google.com/)
-2. Copiez le fichier `.env.example` en `.env` :
-
-   ```bash
-   cp .env.example .env
-   ```
-
-3. Éditez `.env` et ajoutez votre clé :
-
-   ```
-   GEMINI_API_KEY=votre_cle_api_ici
-   ```
-
-> **Note** : Sans clé API, l'ajout avec IA sera désactivé. Toutes les autres fonctionnalités restent disponibles.
+*(Obtenez votre clé gratuitement sur [Google AI Studio](https://aistudio.google.com/))*
 
 ---
 
-## 📖 Utilisation
+## 🏗 Architecture Technique
 
-### 1. Ajouter vos produits
+Le projet repose sur une architecture moderne et maintenable :
 
-**Méthode manuelle :**
-
-1. Cliquez sur l'onglet **"Mes Produits"**
-2. Cliquez sur **"+ Ajouter"**
-3. Remplissez les informations du produit
-
-**Méthode IA (recommandée) :**
-
-1. Cliquez sur **"+ Ajouter avec IA"**
-2. Entrez le nom du produit
-3. L'IA analyse et pré-remplit les caractéristiques
-4. Vérifiez et validez
-
-### 2. Sélectionner votre ville
-
-1. Cliquez sur **"Changer"** en haut à droite
-2. Onglet **Rechercher** : trouvez une nouvelle ville
-3. Cliquez sur ⭐ pour ajouter aux favoris
-4. Onglet **Favoris** : sélectionnez rapidement (données en cache, pas d'internet requis)
-
-### 3. Analyser
-
-1. Revenez sur l'onglet **"Analyse"**
-2. Cliquez sur **"ANALYSER MES PRODUITS"**
-3. Consultez les recommandations par moment
-
----
-
-## 🏗 Architecture
-
-```
-DermaLogic/
-├── main.py                 # Point d'entrée
-├── requirements.txt        # Dépendances Python
-├── .env.example            # Template configuration
-├── .gitignore              # Fichiers ignorés
-├── LICENSE                 # Licence MIT
-├── README.md               # Documentation
-│
-├── api/                    # Couche API externe
-│   ├── __init__.py
-│   ├── open_meteo.py       # Client API Open-Meteo (météo + géocodage)
-│   └── gemini.py           # Client API Google Gemini (IA)
-│
-├── core/                   # Logique métier
-│   ├── __init__.py
-│   ├── algorithme.py       # Algorithme de décision + modèle Produit
-│   ├── config.py           # Gestionnaire de configuration
-│   └── historique.py       # Gestionnaire d'historique des analyses
-│
-├── gui/                    # Interface utilisateur
-│   ├── __init__.py
-│   └── interface.py        # Interface CustomTkinter complète
-│
-└── user_data/              # Données utilisateur (ignoré par git)
-    ├── README.md
-    ├── config.json         # Configuration + favoris (généré)
-    ├── produits_derma.json # Produits (généré)
-    └── historique/         # Historique des analyses
-        ├── analyses_recentes.json  # 2 dernières semaines
-        └── analyses_archives.json  # Plus anciennes
-```
-
----
-
-## 🧴 Structure des produits
-
-Chaque produit est défini par 6 caractéristiques :
-
-| Attribut | Type | Description |
-|----------|------|-------------|
-| `nom` | str | Nom du produit |
-| `category` | enum | `cleanser`, `treatment`, `moisturizer`, `protection` |
-| `moment` | enum | `matin`, `journee`, `soir`, `tous` |
-| `photosensitive` | bool | Réagit aux UV (BHA, rétinol, AHA) |
-| `occlusivity` | int 1-5 | Richesse de la texture (5 = très occlusif) |
-| `cleansing_power` | int 1-5 | Puissance nettoyante (5 = très puissant) |
-| `active_tag` | enum | `acne`, `hydration`, `repair` |
-
-### Exemple JSON
-
-```json
-{
-  "nom": "Paula's Choice BHA 2%",
-  "category": "treatment",
-  "moment": "soir",
-  "photosensitive": true,
-  "occlusivity": 1,
-  "cleansing_power": 1,
-  "active_tag": "acne"
-}
-```
-
----
-
-## 🔬 Algorithme de décision
-
-L'algorithme applique 3 filtres successifs :
-
-### A. Filtre de Sécurité (UV)
-
-```
-SI indice_UV > 3 :
-   EXCLURE tous les produits photosensitive=True (pour matin/journée)
-```
-
-### B. Filtre de Texture (Humidité)
-
-```
-SI humidité < 45% :
-   PRIORISER les produits avec occlusivity >= 4
-
-SI humidité > 70% :
-   EXCLURE les produits avec occlusivity <= 2 (sauf nettoyants)
-```
-
-### C. Filtre de Pureté (Pollution)
-
-```
-SI PM2.5 > 25 µg/m³ :
-   RECOMMANDER le nettoyant avec le cleansing_power le plus élevé
-```
-
----
-
-## 🌍 APIs utilisées
-
-### Open-Meteo (gratuit, sans clé)
-
-| API | Endpoint | Données |
-|-----|----------|---------|
-| Météo | `api.open-meteo.com/v1/forecast` | UV, humidité, température |
-| Qualité de l'air | `air-quality-api.open-meteo.com/v1/air-quality` | PM2.5, PM10 |
-| Géocodage | `geocoding-api.open-meteo.com/v1/search` | Recherche de villes |
-
-### Google Gemini (clé requise)
-
-| API | Modèle | Utilisation |
-|-----|--------|-------------|
-| Gemini | `gemini-2.0-flash` | Analyse automatique des produits cosmétiques |
+- **Frontend** : [Flet](https://flet.dev) (Flutter en Python) pour une UI réactive et multi-plateforme.
+- **Backend IA** : Google Gemini 2.0 Flash pour l'analyse sémantique et dermatologique.
+- **Data** : Open-Meteo pour les données environnementales temps réel.
+- **Core** : Moteur de décision hybride (Algorithmique + IA).
 
 ---
 
 ## 🤝 Contribuer
 
-Les contributions sont les bienvenues !
-
-1. Forkez le projet
-2. Créez votre branche (`git checkout -b feature/AmazingFeature`)
-3. Committez vos changements (`git commit -m 'Add some AmazingFeature'`)
-4. Pushez vers la branche (`git push origin feature/AmazingFeature`)
-5. Ouvrez une Pull Request
+Les contributions sont les bienvenues pour nous aider à atteindre le "Zéro Charge Cognitive" !
+Forkez, développez, et proposez vos Pull Requests.
 
 ---
 
-## 📝 Licence
+## 📄 Licence
 
-Distribué sous licence MIT. Voir [LICENSE](LICENSE) pour plus d'informations.
-
----
-
-## 👤 Auteur
-
-Créé avec ❤️ et l'aide de l'IA
+Distribué sous licence MIT.

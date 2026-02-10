@@ -15,7 +15,7 @@ from pathlib import Path
 # Ajout du chemin du projet pour les imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from gui.interface import lancer_application
+from gui.app_flet import lancer_application
 
 
 def main():

@@ -1,1 +1,1 @@
-"""Package pages - Pages de l'application DermaLogic."""
+"""Composants Flet réutilisables pour DermaLogic."""
