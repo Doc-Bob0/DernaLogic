@@ -26,6 +26,10 @@ from gui.dialogs.recherche_ia import ouvrir_recherche_ia
 from gui.dialogs.selection_ville import ouvrir_selection_ville
 from gui.dialogs.analyse_ia import ouvrir_analyse_ia_dialog
 
+# Layouts adaptatifs
+from gui.layouts import LayoutDesktop, LayoutMobile
+from core.plateforme import obtenir_info_plateforme, obtenir_config_ui
+
 from api.open_meteo import ClientOpenMeteo, Localisation, DonneesEnvironnementales
 from api.gemini import ClientGemini, ResultatRoutineIA, RoutineMoment
 from core.algorithme import (
@@ -54,8 +58,20 @@ class ApplicationFlet:
         self.page.title = "DermaLogic"
         self.page.bgcolor = COULEUR_FOND
         self.page.padding = 0
-        self.page.window.width = 1100
-        self.page.window.height = 750
+
+        # ── Détection de plateforme ──
+        self.info_plateforme = obtenir_info_plateforme()
+        self.config_ui = obtenir_config_ui()
+
+        # Adapter la taille de fenêtre selon la plateforme
+        if self.info_plateforme.est_mobile:
+            # Mobile: plein écran ou taille typique smartphone
+            self.page.window.width = self.info_plateforme.largeur_ecran_estimee
+            self.page.window.height = self.info_plateforme.hauteur_ecran_estimee
+        else:
+            # Desktop: taille par défaut
+            self.page.window.width = 1100
+            self.page.window.height = 750
 
         # ── Services ──
         self.gestionnaire_config = GestionnaireConfig()
@@ -86,101 +102,70 @@ class ApplicationFlet:
         self.page_historique = PageHistorique(self.gestionnaire_historique)
         self.page_profil = PageProfil(self.gestionnaire_profil)
 
-        # ── Navigation ──
-        self._creer_navigation()
+        # ── Layout adaptatif ──
+        self._creer_layout()
         self._afficher_page("accueil")
         self.actualiser_donnees()
 
-    def _creer_navigation(self):
-        """Construit la barre de navigation."""
+    def _creer_layout(self):
+        """Crée le layout adaptatif selon la plateforme."""
 
-        self.btn_accueil = ft.TextButton(
-            "Analyse",
-            on_click=lambda e: self._afficher_page("accueil"),
-            style=ft.ButtonStyle(color=COULEUR_ACCENT),
-        )
-        self.btn_produits = ft.TextButton(
-            "Mes Produits",
-            on_click=lambda e: self._afficher_page("produits"),
-            style=ft.ButtonStyle(color=COULEUR_TEXTE),
-        )
-        self.btn_historique = ft.TextButton(
-            "📊 Historique",
-            on_click=lambda e: self._afficher_page("historique"),
-            style=ft.ButtonStyle(color=COULEUR_TEXTE),
-        )
-        self.btn_profil = ft.TextButton(
-            "👤 Mon Profil",
-            on_click=lambda e: self._afficher_page("profil"),
-            style=ft.ButtonStyle(color=COULEUR_TEXTE),
-        )
+        # Créer le layout approprié
+        if self.info_plateforme.est_mobile:
+            self.layout = LayoutMobile(
+                page=self.page,
+                on_navigation=self._navigation_callback,
+                nom_ville=self.client_meteo.nom_ville
+            )
+        else:
+            self.layout = LayoutDesktop(
+                page=self.page,
+                on_navigation=self._navigation_callback,
+                nom_ville=self.client_meteo.nom_ville
+            )
 
-        self.label_ville = ft.Text(
-            self.client_meteo.nom_ville,
-            size=12, color=COULEUR_TEXTE_SECONDAIRE,
-        )
-        self.btn_ville = ft.TextButton(
-            "Changer",
-            on_click=lambda e: self._ouvrir_selection_ville(),
-            style=ft.ButtonStyle(
-                bgcolor=COULEUR_CARTE_HOVER, color=COULEUR_TEXTE,
-            ),
-        )
+        # Configurer les callbacks
+        self.layout.configurer_callbacks({
+            "changer_ville": self._ouvrir_selection_ville
+        })
 
-        self.nav_bar = ft.Container(
-            content=ft.Row([
-                ft.Text("DermaLogic", size=20, weight=ft.FontWeight.BOLD, color=COULEUR_TEXTE),
-                ft.Container(width=25),
-                self.btn_accueil,
-                self.btn_produits,
-                self.btn_historique,
-                self.btn_profil,
-                ft.Container(expand=True),
-                self.label_ville,
-                self.btn_ville,
-            ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
-            bgcolor=COULEUR_PANNEAU,
-            height=55,
-            padding=ft.padding.symmetric(horizontal=20),
-        )
-
-        # Conteneur de pages
+        # Conteneur de pages (pour compatibilité avec le code existant)
         self.vue_pages = ft.Column(expand=True)
 
-        self.page.add(
-            self.nav_bar,
-            ft.Container(
-                content=self.vue_pages,
-                expand=True,
-                padding=ft.padding.all(15),
-            ),
-        )
+        # Ajouter le layout à la page
+        self.page.add(self.layout.obtenir_layout())
+
+    def _navigation_callback(self, page_id: str):
+        """Callback appelé lors du changement de page."""
+        self._afficher_page(page_id)
 
     def _afficher_page(self, nom: str):
         """Affiche une page et met à jour la navigation."""
-        # Reset boutons
-        for btn in [self.btn_accueil, self.btn_produits, self.btn_historique, self.btn_profil]:
-            btn.style = ft.ButtonStyle(color=COULEUR_TEXTE)
+        # Créer un conteneur avec padding adapté à la plateforme
+        padding_value = self.config_ui.espacement_base if self.info_plateforme.est_mobile else 15
 
-        self.vue_pages.controls.clear()
+        contenu_wrapper = ft.Container(
+            expand=True,
+            padding=ft.padding.all(padding_value),
+        )
 
         if nom == "accueil":
-            self.vue_pages.controls.append(self.page_accueil)
-            self.btn_accueil.style = ft.ButtonStyle(color=COULEUR_ACCENT)
+            contenu_wrapper.content = self.page_accueil
+            self.layout.definir_contenu(contenu_wrapper)
             self.page.update()
         elif nom == "produits":
-            self.vue_pages.controls.append(self.page_produits)
-            self.btn_produits.style = ft.ButtonStyle(color=COULEUR_ACCENT)
+            contenu_wrapper.content = self.page_produits
+            self.layout.definir_contenu(contenu_wrapper)
             self.page.update()
             self.page_produits.actualiser_liste()
         elif nom == "historique":
-            self.vue_pages.controls.append(self.page_historique)
-            self.btn_historique.style = ft.ButtonStyle(color=COULEUR_ACCENT)
+            contenu_wrapper.content = self.page_historique
+            self.layout.definir_contenu(contenu_wrapper)
             self.page.update()
             self.page_historique.actualiser()
         elif nom == "profil":
-            self.vue_pages.controls.append(self.page_profil)
-            self.btn_profil.style = ft.ButtonStyle(color=COULEUR_ACCENT)
+            contenu_wrapper.content = self.page_profil
+            self.layout.definir_contenu(contenu_wrapper)
             self.page.update()
             self.page_profil.actualiser()
 
@@ -461,6 +446,8 @@ class ApplicationFlet:
 
     def _on_ville_changee(self, utiliser_cache: bool = False, ville_cache: VilleConfig = None):
         """Callback quand la ville est changée."""
+        # Mettre à jour le layout avec le nouveau nom de ville
+        self.layout.mettre_a_jour_ville(self.client_meteo.nom_ville)
         self.actualiser_donnees(utiliser_cache=utiliser_cache, ville_cache=ville_cache)
 
     # =========================================================================
