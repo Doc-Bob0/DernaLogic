@@ -1,52 +1,24 @@
 """
-DermaLogic - Module GUI
-=======================
+DermaLogic - Module GUI (Flet)
+===============================
 
-Ce module contient l'interface graphique utilisateur :
-- ApplicationPrincipale : Fenêtre principale avec navigation
-- PageAccueil : Page d'analyse avec conditions et recommandations
-- PageProduits : Page de gestion des produits personnalisés
-- Widgets personnalisés (cartes environnement, lignes moment, etc.)
+Interface graphique responsive avec Flet.
+Fonctionne en mode desktop et web, avec layouts adaptatifs mobile/desktop.
+
+Structure :
+- app.py : Orchestrateur principal
+- theme.py : Couleurs et theme
+- state.py : Etat partage
+- data.py : Gestionnaire de produits
+- components/ : Widgets reutilisables
+- pages/ : Pages principales
+- dialogs/ : Dialogues modaux
 """
 
-from gui.interface import (
-    # Application
-    ApplicationPrincipale,
-    lancer_application,
-    
-    # Pages
-    PageAccueil,
-    PageProduits,
-    
-    # Widgets
-    CarteEnvironnement,
-    LigneMoment,
-    
-    # Dialogues
-    FormulaireProduit,
-    FenetreSelectionVille,
-    
-    # Gestionnaire
-    GestionnaireProduits,
-)
+from gui.app import main as lancer_application
+from gui.data import GestionnaireProduits
 
 __all__ = [
-    # Application
-    "ApplicationPrincipale",
     "lancer_application",
-    
-    # Pages
-    "PageAccueil",
-    "PageProduits",
-    
-    # Widgets
-    "CarteEnvironnement",
-    "LigneMoment",
-    
-    # Dialogues
-    "FormulaireProduit",
-    "FenetreSelectionVille",
-    
-    # Gestionnaire
     "GestionnaireProduits",
 ]

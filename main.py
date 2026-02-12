@@ -1,12 +1,12 @@
 """
-DermaLogic - Moteur de Décision Dermatologique
+DermaLogic - Moteur de Decision Dermatologique
 ===============================================
 
-Application qui adapte votre protocole de soins aux conditions 
-environnementales (UV, humidité, pollution) pour maximiser 
-l'efficacité de vos actifs.
+Application qui adapte votre protocole de soins aux conditions
+environnementales (UV, humidite, pollution) pour maximiser
+l'efficacite de vos actifs.
 
-Point d'entrée principal de l'application.
+Point d'entree principal de l'application.
 """
 
 import sys
@@ -15,7 +15,8 @@ from pathlib import Path
 # Ajout du chemin du projet pour les imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from gui.interface import lancer_application
+import flet as ft
+from gui.app import main as flet_main
 
 
 def main():
@@ -24,8 +25,8 @@ def main():
     print("  DermaLogic - Moteur de Decision Dermatologique")
     print("=" * 50)
     print()
-    
-    lancer_application()
+
+    ft.run(flet_main)
 
 
 if __name__ == "__main__":
