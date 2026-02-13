@@ -111,7 +111,7 @@ class FenetreRechercheIA:
         # Etat de chargement
         self.btn_analyser.disabled = True
         self.btn_analyser.text = "Analyse en cours..."
-        self.label_status.value = "Connexion a Gemini..."
+        self.label_status.value = "Analyse IA en cours (~5-10s)..."
         self.label_status.color = COULEUR_TEXTE_SECONDAIRE
         self.page.update()
 

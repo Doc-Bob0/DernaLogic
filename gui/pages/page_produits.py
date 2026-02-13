@@ -272,18 +272,12 @@ class PageProduits(ft.Column):
 
         def _supprimer(e):
             self.gestionnaire.supprimer(index)
-            dialog.open = False
-            self.page_ref.update()
-            if dialog in self.page_ref.overlay:
-                self.page_ref.overlay.remove(dialog)
+            self.page_ref.pop_dialog()
             self.actualiser_liste()
             self.page_ref.update()
 
         def _annuler(e):
-            dialog.open = False
-            self.page_ref.update()
-            if dialog in self.page_ref.overlay:
-                self.page_ref.overlay.remove(dialog)
+            self.page_ref.pop_dialog()
 
         dialog = ft.AlertDialog(
             modal=True,
@@ -304,9 +298,7 @@ class PageProduits(ft.Column):
             ],
             actions_alignment=ft.MainAxisAlignment.END,
         )
-        self.page_ref.overlay.append(dialog)
-        dialog.open = True
-        self.page_ref.update()
+        self.page_ref.show_dialog(dialog)
 
     def _ouvrir_formulaire(self, e=None):
         """Ouvre le formulaire d'ajout de produit."""

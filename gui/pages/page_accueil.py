@@ -342,7 +342,7 @@ class PageAccueil(ft.Column):
         self.btn_lancer_detaille.disabled = loading
         if loading:
             self.btn_rapide.text = "Analyse en cours..."
-            self.label_statut.value = "Analyse IA en cours, veuillez patienter..."
+            self.label_statut.value = "Analyse IA en cours (~15-30s selon la connexion)..."
             self.label_statut.color = "#f9ed69"
         else:
             self.btn_rapide.text = "Analyse Rapide"

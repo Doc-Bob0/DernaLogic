@@ -12,6 +12,7 @@ La cle API est fournie par l'utilisateur via l'ecran Parametres.
 import requests
 import json
 import re
+import time
 from typing import Optional
 from dataclasses import dataclass
 
@@ -190,6 +191,7 @@ class ClientGemini:
     def generer(self, prompt: str, max_tokens: int = 512, temperature: float = 0.2) -> Optional[str]:
         """Envoie un prompt a Gemini et retourne la reponse brute."""
         if not self.api_key:
+            print("[Gemini] Erreur: cle API non configuree")
             return None
 
         headers = {"Content-Type": "application/json"}
@@ -202,6 +204,12 @@ class ClientGemini:
             }
         }
 
+        prompt_court = prompt[:80].replace('\n', ' ')
+        print(f"[Gemini] Envoi requete vers {self.model}...")
+        print(f"[Gemini]   Prompt: {prompt_court}...")
+        print(f"[Gemini]   Tokens max: {max_tokens} | Temperature: {temperature}")
+        t0 = time.time()
+
         try:
             response = requests.post(
                 f"{self.api_url}?key={self.api_key}",
@@ -209,6 +217,8 @@ class ClientGemini:
                 json=payload,
                 timeout=60
             )
+            duree = time.time() - t0
+            print(f"[Gemini] Reponse recue en {duree:.1f}s (HTTP {response.status_code})")
             response.raise_for_status()
 
             data = response.json()
@@ -218,12 +228,16 @@ class ClientGemini:
                 content = candidates[0].get("content", {})
                 parts = content.get("parts", [])
                 if parts:
-                    return parts[0].get("text", "").strip()
+                    texte = parts[0].get("text", "").strip()
+                    print(f"[Gemini] Reponse OK ({len(texte)} caracteres)")
+                    return texte
 
+            print("[Gemini] Reponse vide (aucun candidat)")
             return None
 
         except requests.RequestException as e:
-            print(f"[Gemini] Erreur de requete: {e}")
+            duree = time.time() - t0
+            print(f"[Gemini] Erreur apres {duree:.1f}s: {e}")
             return None
 
     def _extraire_json(self, texte: str) -> Optional[dict]:
@@ -272,6 +286,10 @@ class ClientGemini:
 
     def analyser_produit(self, nom_produit: str) -> ResultatAnalyseIA:
         """Analyse un produit cosmetique et retourne ses caracteristiques."""
+        print(f"\n{'='*50}")
+        print(f"[Gemini] Analyse produit: {nom_produit}")
+        print(f"[Gemini] Modele: {self.model}")
+        print(f"{'='*50}")
         prompt = PROMPT_ANALYSE_PRODUIT.format(nom_produit=nom_produit)
         reponse = self.generer(prompt)
 
@@ -427,6 +445,21 @@ class ClientGemini:
             instructions_supplementaires=instructions_supplementaires,
         )
 
+        # Logs contexte
+        print(f"\n{'='*50}")
+        print(f"[Gemini] Analyse routine ({mode})")
+        print(f"[Gemini]   Ville: {ville}")
+        print(f"[Gemini]   Produits: {len(produits)}")
+        print(f"[Gemini]   UV: {conditions_actuelles.indice_uv} | Humidite: {conditions_actuelles.humidite_relative}%")
+        print(f"[Gemini]   Previsions: {len(previsions)} jours")
+        print(f"[Gemini]   Historique: {len(historique_recent)} analyses precedentes")
+        print(f"[Gemini]   Stress: {stress}/10")
+        if mode == "detaille" and instructions_jour:
+            print(f"[Gemini]   Instructions: {instructions_jour[:80]}")
+        print(f"[Gemini] Modele: gemini-2.5-flash")
+        print(f"[Gemini] Taille prompt: ~{len(prompt)} caracteres")
+        print(f"{'='*50}")
+
         # Utiliser Gemini 2.5 Flash pour l'analyse (plus capable)
         client_analyse = ClientGemini(
             api_key=self.api_key,
@@ -436,6 +469,7 @@ class ClientGemini:
         reponse = client_analyse.generer(prompt, max_tokens=4096, temperature=0.4)
 
         if not reponse:
+            print("[Gemini] ECHEC: pas de reponse")
             return {
                 "erreur": "Pas de reponse de Gemini. Verifie ta connexion internet et ta cle API.",
                 "routine_matin": [],
@@ -449,6 +483,8 @@ class ClientGemini:
         resultat = self._extraire_json(reponse)
 
         if resultat is None:
+            print(f"[Gemini] ECHEC: JSON invalide")
+            print(f"[Gemini] Reponse brute: {reponse[:300]}")
             return {
                 "erreur": f"Impossible de parser la reponse IA:\n{reponse[:200]}...",
                 "routine_matin": [],
@@ -457,6 +493,12 @@ class ClientGemini:
                 "conseils_jour": "",
                 "resume": "",
             }
+
+        # Logs resultat
+        nb_matin = len(resultat.get("routine_matin", []))
+        nb_soir = len(resultat.get("routine_soir", []))
+        nb_alertes = len(resultat.get("alertes", []))
+        print(f"[Gemini] SUCCES: {nb_matin} produits matin, {nb_soir} produits soir, {nb_alertes} alertes")
 
         # S'assurer que tous les champs existent
         return {
