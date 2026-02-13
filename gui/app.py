@@ -6,7 +6,6 @@ Orchestrateur principal : navigation responsive 5 pages,
 double mode d'analyse IA, gestion des callbacks.
 """
 
-import threading
 import flet as ft
 
 from gui.theme import (
@@ -106,7 +105,7 @@ def main(page: ft.Page):
             page_accueil.set_loading(False)
             page.update()
 
-        threading.Thread(target=_background, daemon=True).start()
+        page.run_thread(_background)
 
     # --- Actions analyse IA ---
 
@@ -154,7 +153,7 @@ def main(page: ft.Page):
 
             page.update()
 
-        threading.Thread(target=_background, daemon=True).start()
+        page.run_thread(_background)
 
     def lancer_analyse_detaille(instructions: str, niveau_stress: int):
         """Lance une analyse detaillee avec instructions du jour."""
@@ -184,7 +183,7 @@ def main(page: ft.Page):
 
             page.update()
 
-        threading.Thread(target=_background, daemon=True).start()
+        page.run_thread(_background)
 
     # --- Actions ville ---
 

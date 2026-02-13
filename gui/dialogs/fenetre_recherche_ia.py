@@ -6,7 +6,7 @@ Dialogue pour rechercher et analyser un produit avec l'IA Gemini.
 L'IA analyse le produit et pre-remplit le formulaire d'ajout.
 """
 
-import threading
+
 import flet as ft
 from gui.theme import (
     COULEUR_ACCENT,
@@ -154,4 +154,4 @@ class FenetreRechercheIA:
                 self.btn_analyser.text = "Reessayer"
                 self.page.update()
 
-        threading.Thread(target=_background, daemon=True).start()
+        self.page.run_thread(_background)

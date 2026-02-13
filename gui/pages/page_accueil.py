@@ -360,6 +360,7 @@ class PageAccueil(ft.Column):
 
     def afficher_resultat_ia(self, resultat: dict):
         """Affiche le resultat de l'analyse IA."""
+        print(f"[UI] afficher_resultat_ia() appele avec {len(resultat)} cles: {list(resultat.keys())}")
         col = self.resultat_container.content
         col.controls.clear()
 
@@ -419,6 +420,7 @@ class PageAccueil(ft.Column):
         self.resultat_container.visible = True
         self.label_statut.value = "Analyse terminee"
         self.label_statut.color = COULEUR_ACCENT
+        print(f"[UI] resultat_container.visible={self.resultat_container.visible}, {len(col.controls)} controles ajoutes")
 
     def afficher_erreur_analyse(self, message: str):
         """Affiche une erreur dans la zone de resultat."""

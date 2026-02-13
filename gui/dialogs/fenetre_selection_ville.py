@@ -3,10 +3,10 @@ DermaLogic - Fenetre de selection de ville
 ============================================
 
 Dialogue modal pour rechercher et selectionner une ville.
-Deux onglets : recherche (API) et favoris (cache).
+Deux vues : recherche (API) et favoris (cache).
 """
 
-import threading
+
 import flet as ft
 from gui.theme import (
     COULEUR_ACCENT,
@@ -38,7 +38,7 @@ class FenetreSelectionVille:
         self.callback = callback
         self.resultats: list[Localisation] = []
 
-        # --- Onglet Recherche ---
+        # --- Vue Recherche ---
         self.entry_recherche = ft.TextField(
             hint_text="Ex: Lyon, Marseille, Bordeaux...",
             expand=True,
@@ -67,61 +67,86 @@ class FenetreSelectionVille:
             )
         )
 
-        onglet_recherche = ft.Tab(
-            text="Rechercher",
-            content=ft.Container(
-                padding=ft.Padding.only(top=10),
-                content=ft.Column(
-                    expand=True,
-                    controls=[
-                        ft.Row([self.entry_recherche, self.btn_recherche]),
-                        ft.Text(
-                            "Resultats",
-                            size=12,
-                            weight=ft.FontWeight.BOLD,
-                            color=COULEUR_TEXTE_SECONDAIRE,
-                        ),
-                        ft.Container(
-                            expand=True,
-                            bgcolor=COULEUR_PANNEAU,
-                            border_radius=10,
-                            content=self.liste_resultats,
-                        ),
-                    ],
-                ),
+        self.vue_recherche = ft.Container(
+            expand=True,
+            visible=True,
+            padding=ft.Padding.only(top=10),
+            content=ft.Column(
+                expand=True,
+                controls=[
+                    ft.Row([self.entry_recherche, self.btn_recherche]),
+                    ft.Text(
+                        "Resultats",
+                        size=12,
+                        weight=ft.FontWeight.BOLD,
+                        color=COULEUR_TEXTE_SECONDAIRE,
+                    ),
+                    ft.Container(
+                        expand=True,
+                        bgcolor=COULEUR_PANNEAU,
+                        border_radius=10,
+                        content=self.liste_resultats,
+                    ),
+                ],
             ),
         )
 
-        # --- Onglet Favoris ---
+        # --- Vue Favoris ---
         self.liste_favoris = ft.ListView(spacing=4, expand=True, padding=5)
 
-        onglet_favoris = ft.Tab(
-            text="Favoris",
-            content=ft.Container(
-                padding=ft.Padding.only(top=10),
-                content=ft.Column(
-                    expand=True,
-                    controls=[
-                        ft.Text(
-                            "Villes favorites",
-                            size=12,
-                            weight=ft.FontWeight.BOLD,
-                            color=COULEUR_TEXTE_SECONDAIRE,
-                        ),
-                        ft.Text(
-                            "Donnees meteo en cache - pas de connexion requise",
-                            size=10,
-                            color="#9b59b6",
-                        ),
-                        ft.Container(
-                            expand=True,
-                            bgcolor=COULEUR_PANNEAU,
-                            border_radius=10,
-                            content=self.liste_favoris,
-                        ),
-                    ],
-                ),
+        self.vue_favoris = ft.Container(
+            expand=True,
+            visible=False,
+            padding=ft.Padding.only(top=10),
+            content=ft.Column(
+                expand=True,
+                controls=[
+                    ft.Text(
+                        "Villes favorites",
+                        size=12,
+                        weight=ft.FontWeight.BOLD,
+                        color=COULEUR_TEXTE_SECONDAIRE,
+                    ),
+                    ft.Text(
+                        "Donnees meteo en cache - pas de connexion requise",
+                        size=10,
+                        color="#9b59b6",
+                    ),
+                    ft.Container(
+                        expand=True,
+                        bgcolor=COULEUR_PANNEAU,
+                        border_radius=10,
+                        content=self.liste_favoris,
+                    ),
+                ],
             ),
+        )
+
+        # --- Boutons onglets ---
+        self.btn_tab_recherche = ft.TextButton(
+            "Rechercher",
+            on_click=lambda e: self._changer_vue("recherche"),
+            style=ft.ButtonStyle(
+                color=COULEUR_FOND,
+                bgcolor=COULEUR_ACCENT,
+                shape=ft.RoundedRectangleBorder(radius=8),
+                padding=ft.Padding.symmetric(horizontal=16, vertical=8),
+            ),
+        )
+        self.btn_tab_favoris = ft.TextButton(
+            "Favoris",
+            on_click=lambda e: self._changer_vue("favoris"),
+            style=ft.ButtonStyle(
+                color="#ffffff",
+                bgcolor="transparent",
+                shape=ft.RoundedRectangleBorder(radius=8),
+                padding=ft.Padding.symmetric(horizontal=16, vertical=8),
+            ),
+        )
+
+        barre_onglets = ft.Row(
+            controls=[self.btn_tab_recherche, self.btn_tab_favoris],
+            spacing=5,
         )
 
         # --- Ville actuelle ---
@@ -155,16 +180,6 @@ class FenetreSelectionVille:
             ),
         )
 
-        # --- Tabs ---
-        self.tabs = ft.Tabs(
-            tabs=[onglet_recherche, onglet_favoris],
-            expand=True,
-            on_change=self._on_tab_change,
-            indicator_color=COULEUR_ACCENT,
-            label_color=COULEUR_ACCENT,
-            unselected_label_color=COULEUR_TEXTE_SECONDAIRE,
-        )
-
         # --- Dialog ---
         self.dialog = ft.AlertDialog(
             modal=True,
@@ -175,7 +190,12 @@ class FenetreSelectionVille:
                 width=450,
                 height=450,
                 content=ft.Column(
-                    controls=[barre_actuelle, self.tabs],
+                    controls=[
+                        barre_actuelle,
+                        barre_onglets,
+                        self.vue_recherche,
+                        self.vue_favoris,
+                    ],
                     expand=True,
                 ),
             ),
@@ -188,6 +208,25 @@ class FenetreSelectionVille:
             ],
         )
 
+    def _changer_vue(self, vue: str):
+        """Change entre la vue recherche et favoris."""
+        if vue == "recherche":
+            self.vue_recherche.visible = True
+            self.vue_favoris.visible = False
+            self.btn_tab_recherche.style.bgcolor = COULEUR_ACCENT
+            self.btn_tab_recherche.style.color = COULEUR_FOND
+            self.btn_tab_favoris.style.bgcolor = "transparent"
+            self.btn_tab_favoris.style.color = "#ffffff"
+        else:
+            self.vue_recherche.visible = False
+            self.vue_favoris.visible = True
+            self.btn_tab_recherche.style.bgcolor = "transparent"
+            self.btn_tab_recherche.style.color = "#ffffff"
+            self.btn_tab_favoris.style.bgcolor = COULEUR_ACCENT
+            self.btn_tab_favoris.style.color = COULEUR_FOND
+            self._actualiser_favoris()
+        self.page.update()
+
     def ouvrir(self):
         """Ouvre le dialogue."""
         self.page.show_dialog(self.dialog)
@@ -195,11 +234,6 @@ class FenetreSelectionVille:
     def _fermer(self, e=None):
         """Ferme le dialogue."""
         self.page.pop_dialog()
-
-    def _on_tab_change(self, e):
-        """Callback changement d'onglet."""
-        if e.control.selected_index == 1:
-            self._actualiser_favoris()
 
     def _actualiser_favoris(self):
         """Actualise la liste des favoris."""
@@ -256,7 +290,7 @@ class FenetreSelectionVille:
             self.btn_recherche.disabled = False
             self.page.update()
 
-        threading.Thread(target=_background, daemon=True).start()
+        self.page.run_thread(_background)
 
     def _creer_carte_resultat(self, loc: Localisation) -> ft.Container:
         """Cree une carte pour un resultat de recherche."""

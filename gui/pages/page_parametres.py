@@ -8,7 +8,7 @@ Page de gestion des parametres :
 """
 
 import json
-import threading
+
 import flet as ft
 from gui.theme import (
     COULEUR_ACCENT,
@@ -223,7 +223,7 @@ class PageParametres(ft.Column):
             self.btn_tester.text = "Tester la connexion"
             self.page_ref.update()
 
-        threading.Thread(target=_background, daemon=True).start()
+        self.page_ref.run_thread(_background)
 
     def _exporter_json(self, e=None):
         """Exporte les donnees en JSON dans user_data/."""

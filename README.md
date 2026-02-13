@@ -1,276 +1,171 @@
-# DermaLogic 🧬
+# DermaLogic
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
+[![Flet](https://img.shields.io/badge/UI-Flet-purple.svg)](https://flet.dev/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![CustomTkinter](https://img.shields.io/badge/UI-CustomTkinter-lightblue.svg)](https://github.com/TomSchimansky/CustomTkinter)
 
-**Moteur de décision dermatologique intelligent**
+**Application de recommandations dermatologiques personnalisees par IA**
 
-Application qui adapte votre protocole de soins aux conditions environnementales (UV, humidité, pollution) pour maximiser l'efficacité de vos actifs.
-
-![DermaLogic Screenshot](https://via.placeholder.com/800x450.png?text=DermaLogic+Screenshot)
+DermaLogic analyse vos produits de soin, les conditions environnementales (UV, humidite, pollution, temperature) et votre profil cutane pour generer des routines matin/soir personnalisees via Google Gemini.
 
 ---
 
-## 📋 Table des matières
+## Fonctionnalites
 
-- [Fonctionnalités](#-fonctionnalités)
-- [Installation](#-installation)
-- [Configuration](#-configuration)
-- [Utilisation](#-utilisation)
-- [Architecture](#-architecture)
-- [Structure des produits](#-structure-des-produits)
-- [Algorithme de décision](#-algorithme-de-décision)
-- [APIs utilisées](#-apis-utilisées)
-- [Contribuer](#-contribuer)
-- [Licence](#-licence)
-
----
-
-## ✨ Fonctionnalités
-
-### Actuelles
-
-- ✅ Récupération des données météo en temps réel (UV, humidité, PM2.5, température)
-- ✅ Sélection de ville avec recherche géocodée
-- ✅ **Villes favorites** avec données météo en cache (utilisation hors-ligne)
-- ✅ Gestion des produits personnalisés avec persistance JSON
-- ✅ **Ajout de produits avec IA** (Google Gemini) - détection automatique des caractéristiques
-- ✅ Algorithme de filtrage intelligent (UV, texture, pureté)
-- ✅ Recommandations par moment de la journée (Matin / Journée / Soir)
-- ✅ Interface graphique moderne avec CustomTkinter
-
-### Prévues
-
-- 🔜 Historique des analyses
-- 🔜 Export des recommandations
-- 🔜 Notifications quotidiennes
-- 🔜 Incompatibilités entre actifs
+- Analyse IA des routines de soin via Google Gemini (2.5 Flash)
+- Double mode d'analyse : **Rapide** et **Detaillee** (avec instructions du jour et niveau de stress)
+- Conditions environnementales en temps reel (UV, humidite, PM2.5, temperature)
+- Previsions meteo sur 3 jours integrees au contexte d'analyse
+- Ajout de produits manuel ou par IA (detection automatique des caracteristiques)
+- Profil utilisateur complet (type de peau, age, allergies, maladies, objectifs)
+- Historique des analyses avec detail des routines
+- Export JSON des donnees
+- Villes favorites avec cache meteo
+- Interface responsive (desktop + mobile) avec theme sombre
 
 ---
 
-## 🚀 Installation
+## Bugs connus
 
-### Prérequis
+- **L'affichage des resultats d'analyse dans l'onglet Analyse ne fonctionne pas toujours** : le terminal affiche le succes de l'analyse Gemini mais les resultats ne s'affichent pas dans l'interface. Le passage de `threading.Thread` a `page.run_thread()` a ete effectue mais le probleme persiste. Investigation en cours.
+
+---
+
+## Installation
+
+### Prerequis
 
 - Python 3.10+
-- Connexion internet (pour l'API météo)
+- Connexion internet (APIs meteo et Gemini)
 
-### 1. Cloner le dépôt
+### Etapes
 
 ```bash
 git clone https://github.com/votre-username/DermaLogic.git
 cd DermaLogic
-```
-
-### 2. Créer un environnement virtuel (recommandé)
-
-```bash
 python -m venv venv
 # Windows
 venv\Scripts\activate
 # Linux/Mac
 source venv/bin/activate
-```
-
-### 3. Installer les dépendances
-
-```bash
 pip install -r requirements.txt
-```
-
-### 4. Lancer l'application
-
-```bash
 python main.py
 ```
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
-### Clé API Gemini (optionnel)
+### Cle API Gemini
 
-Pour utiliser la fonctionnalité **"Ajouter avec IA"**, vous devez configurer une clé API Google Gemini :
+La cle API est geree directement dans l'application :
 
-1. Créez une clé sur [Google AI Studio](https://aistudio.google.com/)
-2. Copiez le fichier `.env.example` en `.env` :
+1. Creez une cle gratuite sur [Google AI Studio](https://aistudio.google.com/)
+2. Lancez DermaLogic
+3. Allez dans l'onglet **Parametres**
+4. Collez votre cle API et cliquez **Sauvegarder**
+5. Utilisez **Tester la connexion** pour verifier
 
-   ```bash
-   cp .env.example .env
-   ```
-
-3. Éditez `.env` et ajoutez votre clé :
-
-   ```
-   GEMINI_API_KEY=votre_cle_api_ici
-   ```
-
-> **Note** : Sans clé API, l'ajout avec IA sera désactivé. Toutes les autres fonctionnalités restent disponibles.
+La cle est stockee localement dans `user_data/settings.json` (exclu du git).
 
 ---
 
-## 📖 Utilisation
+## Utilisation
 
-### 1. Ajouter vos produits
+### 1. Configurer votre profil
 
-**Méthode manuelle :**
+Onglet **Profil** : renseignez votre type de peau, tranche d'age, niveau de stress, maladies cutanees, allergies et objectifs.
 
-1. Cliquez sur l'onglet **"Mes Produits"**
-2. Cliquez sur **"+ Ajouter"**
-3. Remplissez les informations du produit
+### 2. Ajouter vos produits
 
-**Méthode IA (recommandée) :**
+Onglet **Mes Produits** :
+- **Ajouter manuellement** : remplissez les caracteristiques du produit
+- **Ajouter avec IA** : entrez le nom du produit, Gemini analyse et pre-remplit les champs
 
-1. Cliquez sur **"+ Ajouter avec IA"**
-2. Entrez le nom du produit
-3. L'IA analyse et pré-remplit les caractéristiques
-4. Vérifiez et validez
+### 3. Selectionner votre ville
 
-### 2. Sélectionner votre ville
+Cliquez sur le nom de la ville dans la barre de navigation pour ouvrir la fenetre de selection. Recherchez une ville ou selectionnez un favori.
 
-1. Cliquez sur **"Changer"** en haut à droite
-2. Onglet **Rechercher** : trouvez une nouvelle ville
-3. Cliquez sur ⭐ pour ajouter aux favoris
-4. Onglet **Favoris** : sélectionnez rapidement (données en cache, pas d'internet requis)
+### 4. Lancer une analyse
 
-### 3. Analyser
+Onglet **Analyse** :
+- **Analyse Rapide** : routine basee sur votre profil, produits et meteo
+- **Analyse Detaillee** : ajoutez des instructions du jour et votre niveau de stress actuel
 
-1. Revenez sur l'onglet **"Analyse"**
-2. Cliquez sur **"ANALYSER MES PRODUITS"**
-3. Consultez les recommandations par moment
+Les resultats incluent : routine matin, routine soir, alertes et conseils du jour.
 
 ---
 
-## 🏗 Architecture
+## Architecture
 
 ```
 DermaLogic/
-├── main.py                 # Point d'entrée
-├── requirements.txt        # Dépendances Python
-├── .env.example            # Template configuration
-├── .gitignore              # Fichiers ignorés
-├── LICENSE                 # Licence MIT
-├── README.md               # Documentation
-│
-├── api/                    # Couche API externe
-│   ├── __init__.py
-│   ├── open_meteo.py       # Client API Open-Meteo (météo + géocodage)
-│   └── gemini.py           # Client API Google Gemini (IA)
-│
-├── core/                   # Logique métier
-│   ├── __init__.py
-│   ├── algorithme.py       # Algorithme de décision + modèle Produit
-│   └── config.py           # Gestionnaire de configuration
-│
-├── gui/                    # Interface utilisateur
-│   ├── __init__.py
-│   └── interface.py        # Interface CustomTkinter complète
-│
-└── user_data/              # Données utilisateur (ignoré par git)
-    ├── README.md
-    ├── config.json         # Configuration + favoris (généré)
-    └── produits_derma.json # Produits (généré)
+|-- main.py                          # Point d'entree Flet
+|-- requirements.txt                 # Dependances (flet, requests)
+|-- .gitignore
+|-- LICENSE
+|-- README.md
+|
+|-- api/                             # Clients API externes
+|   |-- open_meteo.py                # Meteo, qualite air, geocodage (Open-Meteo)
+|   +-- gemini.py                    # Google Gemini (analyse produits + routines)
+|
+|-- core/                            # Logique metier
+|   |-- models.py                    # Enums et dataclasses (TypePeau, ProduitDerma, etc.)
+|   |-- analyseur.py                 # Orchestrateur d'analyse IA
+|   |-- config.py                    # Gestion ville + favoris
+|   |-- profil.py                    # Gestion profil utilisateur
+|   |-- historique.py                # Gestion historique des analyses
+|   +-- settings.py                  # Gestion cle API
+|
+|-- gui/                             # Interface utilisateur Flet
+|   |-- app.py                       # Orchestrateur principal (navigation, callbacks)
+|   |-- state.py                     # Etat global de l'application
+|   |-- theme.py                     # Couleurs, polices, constantes UI
+|   |-- data.py                      # Gestionnaire de produits (persistance JSON)
+|   |-- pages/
+|   |   |-- page_accueil.py          # Analyse + conditions meteo
+|   |   |-- page_produits.py         # Gestion des produits
+|   |   |-- page_profil.py           # Profil utilisateur
+|   |   |-- page_historique.py       # Historique des analyses
+|   |   +-- page_parametres.py       # Cle API + export
+|   |-- dialogs/
+|   |   |-- formulaire_produit.py    # Formulaire ajout/edition produit
+|   |   |-- fenetre_recherche_ia.py  # Recherche produit par IA
+|   |   +-- fenetre_selection_ville.py # Selection de ville + favoris
+|   +-- components/
+|       |-- nav_bar.py               # Navigation desktop + mobile
+|       +-- carte_environnement.py   # Carte meteo (UV, humidite, etc.)
+|
++-- user_data/                       # Donnees utilisateur (gitignore)
+    |-- settings.json                # Cle API (genere)
+    |-- profile.json                 # Profil (genere)
+    |-- produits_derma.json          # Produits (genere)
+    |-- historique.json              # Historique (genere)
+    +-- config.json                  # Ville + favoris (genere)
 ```
 
 ---
 
-## 🧴 Structure des produits
+## APIs utilisees
 
-Chaque produit est défini par 6 caractéristiques :
+### Open-Meteo (gratuit, sans cle)
 
-| Attribut | Type | Description |
-|----------|------|-------------|
-| `nom` | str | Nom du produit |
-| `category` | enum | `cleanser`, `treatment`, `moisturizer`, `protection` |
-| `moment` | enum | `matin`, `journee`, `soir`, `tous` |
-| `photosensitive` | bool | Réagit aux UV (BHA, rétinol, AHA) |
-| `occlusivity` | int 1-5 | Richesse de la texture (5 = très occlusif) |
-| `cleansing_power` | int 1-5 | Puissance nettoyante (5 = très puissant) |
-| `active_tag` | enum | `acne`, `hydration`, `repair` |
+| Endpoint | Donnees |
+|----------|---------|
+| `api.open-meteo.com/v1/forecast` | UV, humidite, temperature |
+| `air-quality-api.open-meteo.com/v1/air-quality` | PM2.5 |
+| `geocoding-api.open-meteo.com/v1/search` | Recherche de villes |
 
-### Exemple JSON
+### Google Gemini (cle requise)
 
-```json
-{
-  "nom": "Paula's Choice BHA 2%",
-  "category": "treatment",
-  "moment": "soir",
-  "photosensitive": true,
-  "occlusivity": 1,
-  "cleansing_power": 1,
-  "active_tag": "acne"
-}
-```
+| Modele | Utilisation |
+|--------|-------------|
+| `gemini-2.0-flash` | Analyse des caracteristiques d'un produit cosmetique |
+| `gemini-2.5-flash` | Generation de routine dermatologique personnalisee |
 
 ---
 
-## 🔬 Algorithme de décision
+## Licence
 
-L'algorithme applique 3 filtres successifs :
-
-### A. Filtre de Sécurité (UV)
-
-```
-SI indice_UV > 3 :
-   EXCLURE tous les produits photosensitive=True (pour matin/journée)
-```
-
-### B. Filtre de Texture (Humidité)
-
-```
-SI humidité < 45% :
-   PRIORISER les produits avec occlusivity >= 4
-
-SI humidité > 70% :
-   EXCLURE les produits avec occlusivity <= 2 (sauf nettoyants)
-```
-
-### C. Filtre de Pureté (Pollution)
-
-```
-SI PM2.5 > 25 µg/m³ :
-   RECOMMANDER le nettoyant avec le cleansing_power le plus élevé
-```
-
----
-
-## 🌍 APIs utilisées
-
-### Open-Meteo (gratuit, sans clé)
-
-| API | Endpoint | Données |
-|-----|----------|---------|
-| Météo | `api.open-meteo.com/v1/forecast` | UV, humidité, température |
-| Qualité de l'air | `air-quality-api.open-meteo.com/v1/air-quality` | PM2.5, PM10 |
-| Géocodage | `geocoding-api.open-meteo.com/v1/search` | Recherche de villes |
-
-### Google Gemini (clé requise)
-
-| API | Modèle | Utilisation |
-|-----|--------|-------------|
-| Gemini | `gemini-2.0-flash` | Analyse automatique des produits cosmétiques |
-
----
-
-## 🤝 Contribuer
-
-Les contributions sont les bienvenues !
-
-1. Forkez le projet
-2. Créez votre branche (`git checkout -b feature/AmazingFeature`)
-3. Committez vos changements (`git commit -m 'Add some AmazingFeature'`)
-4. Pushez vers la branche (`git push origin feature/AmazingFeature`)
-5. Ouvrez une Pull Request
-
----
-
-## 📝 Licence
-
-Distribué sous licence MIT. Voir [LICENSE](LICENSE) pour plus d'informations.
-
----
-
-## 👤 Auteur
-
-Créé avec ❤️ et l'aide de l'IA
+Distribue sous licence MIT. Voir [LICENSE](LICENSE) pour plus d'informations.
