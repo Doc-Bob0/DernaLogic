@@ -2,130 +2,159 @@
 DermaLogic - Client API Gemini
 ==============================
 
-Ce module gère l'intégration avec l'API Gemini de Google
-pour l'analyse intelligente de produits cosmétiques.
+Ce module gere l'integration avec l'API Gemini de Google :
+- Analyse de produits cosmetiques (Gemini 2.0 Flash)
+- Analyse de routine dermatologique complete (Gemini 2.5 Flash)
 
-Utilise Gemini 2.0 Flash pour des réponses rapides et précises.
-
-Configuration :
-    La clé API doit être définie dans le fichier .env :
-    GEMINI_API_KEY=votre_cle_ici
+La cle API est fournie par l'utilisateur via l'ecran Parametres.
 """
 
-import os
 import requests
 import json
 import re
-from pathlib import Path
 from typing import Optional
 from dataclasses import dataclass
-
-
-# =============================================================================
-# CHARGEMENT DE LA CONFIGURATION
-# =============================================================================
-
-def _charger_env() -> None:
-    """Charge les variables d'environnement depuis le fichier .env"""
-    env_path = Path(__file__).parent.parent / ".env"
-    if env_path.exists():
-        with open(env_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    key, value = line.split("=", 1)
-                    os.environ.setdefault(key.strip(), value.strip())
-
-_charger_env()
-
-
-# =============================================================================
-# CONFIGURATION
-# =============================================================================
-
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_MODEL = "gemini-2.0-flash"
-GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
 
 
 # =============================================================================
 # PROMPT EXPERT POUR ANALYSE DE PRODUIT
 # =============================================================================
 
-PROMPT_ANALYSE_PRODUIT = """Tu es un expert dermatologue et cosmétologue avec 20 ans d'expérience dans l'analyse des produits de soin de la peau. Tu connais parfaitement les ingrédients actifs, leur comportement face aux UV, leur texture et leur fonction.
+PROMPT_ANALYSE_PRODUIT = """Tu es un expert dermatologue et cosmetologue avec 20 ans d'experience dans l'analyse des produits de soin de la peau. Tu connais parfaitement les ingredients actifs, leur comportement face aux UV, leur texture et leur fonction.
 
-Je vais te donner le nom d'un produit cosmétique. Tu dois analyser ce produit et me retourner ses caractéristiques au format JSON strict.
+Je vais te donner le nom d'un produit cosmetique. Tu dois analyser ce produit et me retourner ses caracteristiques au format JSON strict.
 
-RÈGLES IMPORTANTES :
-1. Réponds UNIQUEMENT avec un objet JSON valide
-2. Pas de texte avant ou après le JSON
+REGLES IMPORTANTES :
+1. Reponds UNIQUEMENT avec un objet JSON valide
+2. Pas de texte avant ou apres le JSON
 3. Pas de bloc de code markdown (pas de ```)
-4. Utilise tes connaissances sur les formulations cosmétiques
+4. Utilise tes connaissances sur les formulations cosmetiques
 5. Si tu ne connais pas le produit exact, analyse en fonction de la marque et du type de produit
 
-STRUCTURE JSON EXACTE À RETOURNER :
+STRUCTURE JSON EXACTE A RETOURNER :
 {{"nom": "Nom complet du produit", "category": "moisturizer", "moment": "tous", "photosensitive": false, "occlusivity": 3, "cleansing_power": 3, "active_tag": "hydration"}}
 
 VALEURS POSSIBLES :
 - category: "cleanser", "treatment", "moisturizer", "protection"
 - moment: "matin", "journee", "soir", "tous"
 - photosensitive: true ou false
-- occlusivity: nombre entier de 1 à 5
-- cleansing_power: nombre entier de 1 à 5
+- occlusivity: nombre entier de 1 a 5
+- cleansing_power: nombre entier de 1 a 5
 - active_tag: "hydration", "acne", "repair"
 
-GUIDE D'ÉVALUATION :
+GUIDE D'EVALUATION :
 
 category:
-- "cleanser" : nettoyants, démaquillants, eaux micellaires, gels nettoyants
-- "treatment" : sérums, acides, rétinol, vitamine C, niacinamide
-- "moisturizer" : crèmes, baumes, lotions hydratantes
-- "protection" : écrans solaires, SPF, protections UV
+- "cleanser" : nettoyants, demaquillants, eaux micellaires, gels nettoyants
+- "treatment" : serums, acides, retinol, vitamine C, niacinamide
+- "moisturizer" : cremes, baumes, lotions hydratantes
+- "protection" : ecrans solaires, SPF, protections UV
 
 moment:
 - "matin" : SPF, antioxydants, protections
-- "soir" : rétinol, AHA/BHA, traitements intensifs
-- "journee" : réapplication SPF, brumes
+- "soir" : retinol, AHA/BHA, traitements intensifs
+- "journee" : reapplication SPF, brumes
 - "tous" : nettoyants, hydratants basiques, produits sans actifs photosensibles
 
 photosensitive = true si contient :
-- Rétinol, rétinaldéhyde, trétinoïne
-- AHA (acide glycolique, lactique, mandélique)
-- BHA (acide salicylique à haute concentration)
+- Retinol, retinaldehyde, tretinoine
+- AHA (acide glycolique, lactique, mandelique)
+- BHA (acide salicylique a haute concentration)
 - Vitamine C pure (acide ascorbique)
 - Benzoyl peroxide
 
-occlusivity (1=très léger, 5=très riche) :
-- 1 : eaux, brumes, gels, lotions légères
-- 2 : sérums, fluides légers
-- 3 : crèmes légères, émulsions
-- 4 : crèmes riches, baumes légers
-- 5 : baumes épais, huiles, onguents
+occlusivity (1=tres leger, 5=tres riche) :
+- 1 : eaux, brumes, gels, lotions legeres
+- 2 : serums, fluides legers
+- 3 : cremes legeres, emulsions
+- 4 : cremes riches, baumes legers
+- 5 : baumes epais, huiles, onguents
 
-cleansing_power (1=très doux, 5=très puissant) :
+cleansing_power (1=tres doux, 5=tres puissant) :
 - 1 : eaux micellaires douces, laits
 - 2 : gels doux sans sulfate
 - 3 : nettoyants mousse standards
-- 4 : nettoyants purifiants, anti-acné
-- 5 : démaquillants waterproof, nettoyants profonds
+- 4 : nettoyants purifiants, anti-acne
+- 5 : demaquillants waterproof, nettoyants profonds
 
 active_tag :
-- "hydration" : acide hyaluronique, glycérine, céramides, urée
+- "hydration" : acide hyaluronique, glycerine, ceramides, uree
 - "acne" : BHA, niacinamide, zinc, peroxyde de benzoyle
-- "repair" : panthénol, centella, allantoïne, céramides
+- "repair" : panthenol, centella, allantoine, ceramides
 
-PRODUIT À ANALYSER : {nom_produit}
+PRODUIT A ANALYSER : {nom_produit}
 
 Retourne UNIQUEMENT le JSON, rien d'autre."""
 
 
 # =============================================================================
-# STRUCTURE RÉSULTAT
+# PROMPT EXPERT POUR ANALYSE DE ROUTINE
+# =============================================================================
+
+PROMPT_ANALYSE_ROUTINE = """Tu es un dermatologue expert avec 20 ans d'experience.
+Tu dois creer une routine de soins personnalisee basee sur le contexte suivant.
+
+## PROFIL PATIENT
+- Type de peau: {type_peau}
+- Tranche d'age: {tranche_age}
+- Niveau de stress: {niveau_stress}/10
+- Conditions cutanees: {maladies_peau}
+- Allergies/intolerances: {allergies}
+- Objectifs: {objectifs}
+
+## PRODUITS DISPONIBLES
+{produits_json}
+
+## CONDITIONS ENVIRONNEMENTALES ACTUELLES
+- Ville: {ville}
+- UV actuel: {uv} ({niveau_uv})
+- UV max du jour: {uv_max}
+- Humidite: {humidite}% ({niveau_humidite})
+- Temperature: {temperature}C
+- PM2.5: {pm25} ug/m3 ({niveau_pollution})
+
+## PREVISIONS 3 JOURS
+{previsions_json}
+
+## HISTORIQUE DES 3 DERNIERES ANALYSES
+{historique_json}
+
+{instructions_supplementaires}
+
+## REGLES
+1. Utilise UNIQUEMENT les produits de la liste ci-dessus
+2. Respecte les contra-indications (photosensibilite + UV eleve, allergies du patient)
+3. Ordonne les produits du plus aqueux au plus occlusif
+4. Adapte la routine aux conditions meteo actuelles et previsions
+5. Si le patient a des maladies de peau, priorise les produits adaptes
+6. Assure la continuite avec les analyses precedentes (pas de changements brusques)
+7. Prends en compte le stress du patient (stress eleve = routine apaisante, produits doux)
+8. Si pollution elevee, insiste sur le nettoyage
+9. Tout le texte doit etre en francais
+
+## FORMAT DE REPONSE (JSON strict)
+{{
+    "routine_matin": [
+        {{"produit": "Nom du produit", "raison": "Pourquoi ce produit maintenant"}}
+    ],
+    "routine_soir": [
+        {{"produit": "Nom du produit", "raison": "Pourquoi ce produit maintenant"}}
+    ],
+    "alertes": ["Alerte 1 si applicable"],
+    "conseils_jour": "Conseil personnalise pour aujourd'hui",
+    "resume": "Resume court de la strategie pour cette routine"
+}}
+
+Retourne UNIQUEMENT le JSON, rien d'autre."""
+
+
+# =============================================================================
+# STRUCTURE RESULTAT
 # =============================================================================
 
 @dataclass
 class ResultatAnalyseIA:
-    """Résultat de l'analyse IA d'un produit."""
+    """Resultat de l'analyse IA d'un produit."""
     succes: bool
     nom: str = ""
     category: str = "moisturizer"
@@ -144,73 +173,77 @@ class ResultatAnalyseIA:
 class ClientGemini:
     """
     Client pour l'API Gemini de Google.
-    
-    Permet d'analyser des produits cosmétiques et de retourner
-    leurs caractéristiques au format structuré.
+
+    Permet d'analyser des produits cosmetiques et de generer
+    des recommandations de routine dermatologique.
     """
-    
-    def __init__(self, api_key: str = GEMINI_API_KEY, model: str = GEMINI_MODEL):
+
+    def __init__(self, api_key: str = "", model: str = "gemini-2.0-flash"):
         self.api_key = api_key
         self.model = model
         self.api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-    
-    def generer(self, prompt: str) -> Optional[str]:
-        """Envoie un prompt à Gemini et retourne la réponse brute."""
+
+    def est_configure(self) -> bool:
+        """Retourne True si la cle API est definie."""
+        return bool(self.api_key)
+
+    def generer(self, prompt: str, max_tokens: int = 512, temperature: float = 0.2) -> Optional[str]:
+        """Envoie un prompt a Gemini et retourne la reponse brute."""
+        if not self.api_key:
+            return None
+
         headers = {"Content-Type": "application/json"}
-        
+
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
-                "temperature": 0.2,
-                "maxOutputTokens": 512
+                "temperature": temperature,
+                "maxOutputTokens": max_tokens,
             }
         }
-        
+
         try:
             response = requests.post(
                 f"{self.api_url}?key={self.api_key}",
                 headers=headers,
                 json=payload,
-                timeout=30
+                timeout=60
             )
             response.raise_for_status()
-            
+
             data = response.json()
             candidates = data.get("candidates", [])
-            
+
             if candidates:
                 content = candidates[0].get("content", {})
                 parts = content.get("parts", [])
                 if parts:
                     return parts[0].get("text", "").strip()
-            
+
             return None
-            
+
         except requests.RequestException as e:
-            print(f"[Gemini] Erreur de requête: {e}")
+            print(f"[Gemini] Erreur de requete: {e}")
             return None
-    
+
     def _extraire_json(self, texte: str) -> Optional[dict]:
-        """
-        Extrait un objet JSON d'un texte, même s'il est entouré de texte.
-        """
+        """Extrait un objet JSON d'un texte, meme s'il est entoure de texte."""
         if not texte:
             return None
-        
-        # Nettoyer le texte
+
         texte = texte.strip()
-        
+
         # Enlever les blocs de code markdown
         texte = re.sub(r'^```(?:json)?\s*', '', texte)
         texte = re.sub(r'\s*```$', '', texte)
         texte = texte.strip()
-        
+
         # Essayer de parser directement
         try:
             return json.loads(texte)
         except json.JSONDecodeError:
             pass
-        
+
         # Chercher un objet JSON dans le texte avec regex
         match = re.search(r'\{[^{}]*\}', texte, re.DOTALL)
         if match:
@@ -218,11 +251,10 @@ class ClientGemini:
                 return json.loads(match.group())
             except json.JSONDecodeError:
                 pass
-        
-        # Chercher plus largement (JSON imbriqué possible)
+
+        # Chercher plus largement (JSON imbrique possible)
         start = texte.find('{')
         if start != -1:
-            # Trouver la fin du JSON
             depth = 0
             for i, char in enumerate(texte[start:], start):
                 if char == '{':
@@ -235,63 +267,59 @@ class ClientGemini:
                         except json.JSONDecodeError:
                             pass
                         break
-        
+
         return None
-    
+
     def analyser_produit(self, nom_produit: str) -> ResultatAnalyseIA:
-        """
-        Analyse un produit cosmétique et retourne ses caractéristiques.
-        """
+        """Analyse un produit cosmetique et retourne ses caracteristiques."""
         prompt = PROMPT_ANALYSE_PRODUIT.format(nom_produit=nom_produit)
         reponse = self.generer(prompt)
-        
+
         if not reponse:
             return ResultatAnalyseIA(
                 succes=False,
-                erreur="Pas de réponse de Gemini. Vérifie ta connexion internet."
+                erreur="Pas de reponse de Gemini. Verifie ta connexion internet et ta cle API."
             )
-        
-        print(f"[Gemini] Réponse brute: {reponse[:300]}")
-        
-        # Extraire le JSON
+
+        print(f"[Gemini] Reponse brute: {reponse[:300]}")
+
         data = self._extraire_json(reponse)
-        
+
         if data is None:
             return ResultatAnalyseIA(
                 succes=False,
-                erreur=f"Impossible de parser la réponse:\n{reponse[:150]}..."
+                erreur=f"Impossible de parser la reponse:\n{reponse[:150]}..."
             )
-        
+
         # Valider les champs requis
         categories_valides = ["cleanser", "treatment", "moisturizer", "protection"]
         moments_valides = ["matin", "journee", "soir", "tous"]
         tags_valides = ["hydration", "acne", "repair"]
-        
+
         category = data.get("category", "moisturizer")
         if category not in categories_valides:
             category = "moisturizer"
-        
+
         moment = data.get("moment", "tous")
         if moment not in moments_valides:
             moment = "tous"
-        
+
         active_tag = data.get("active_tag", "hydration")
         if active_tag not in tags_valides:
             active_tag = "hydration"
-        
-        # Gérer occlusivity et cleansing_power
+
         try:
             occlusivity = int(data.get("occlusivity", 3))
             occlusivity = max(1, min(5, occlusivity))
         except (TypeError, ValueError):
             occlusivity = 3
-        
+
         try:
             cleansing_power = int(data.get("cleansing_power", 3))
             cleansing_power = max(1, min(5, cleansing_power))
         except (TypeError, ValueError):
             cleansing_power = 3
-        
+
         return ResultatAnalyseIA(
             succes=True,
             nom=str(data.get("nom", nom_produit)),
@@ -303,30 +331,138 @@ class ClientGemini:
             active_tag=active_tag
         )
 
+    def analyser_routine(
+        self,
+        produits: list,
+        conditions_actuelles,
+        previsions: list,
+        profil,
+        historique_recent: list,
+        ville: str = "",
+        mode: str = "rapide",
+        instructions_jour: str = "",
+        niveau_stress_jour: int = None,
+    ) -> dict:
+        """
+        Analyse complete pour generer une routine dermatologique personnalisee.
 
-# =============================================================================
-# TEST DU MODULE
-# =============================================================================
+        Args:
+            produits: Liste de ProduitDerma
+            conditions_actuelles: DonneesEnvironnementales
+            previsions: Liste de PrevisionJournaliere
+            profil: ProfilUtilisateur
+            historique_recent: Liste de EntreeHistorique (3 derniers)
+            ville: Nom de la ville
+            mode: "rapide" ou "detaille"
+            instructions_jour: Instructions specifiques du jour (mode detaille)
+            niveau_stress_jour: Niveau de stress du jour (mode detaille)
 
-if __name__ == "__main__":
-    print("Test du module Gemini")
-    print("=" * 50)
-    
-    client = ClientGemini()
-    
-    produit_test = "CeraVe Crème Hydratante"
-    print(f"\nAnalyse de: {produit_test}")
-    print("-" * 40)
-    
-    resultat = client.analyser_produit(produit_test)
-    
-    if resultat.succes:
-        print(f"✓ Nom: {resultat.nom}")
-        print(f"  Catégorie: {resultat.category}")
-        print(f"  Moment: {resultat.moment}")
-        print(f"  Photosensible: {resultat.photosensitive}")
-        print(f"  Occlusivité: {resultat.occlusivity}/5")
-        print(f"  Pouvoir nettoyant: {resultat.cleansing_power}/5")
-        print(f"  Action: {resultat.active_tag}")
-    else:
-        print(f"✗ Erreur: {resultat.erreur}")
+        Returns:
+            dict avec routine_matin, routine_soir, alertes, conseils_jour, resume
+        """
+        # Construire le JSON des produits
+        produits_json = json.dumps(
+            [p.vers_dict() for p in produits],
+            ensure_ascii=False,
+            indent=2,
+        )
+
+        # Construire le JSON des previsions
+        previsions_json = json.dumps(
+            [p.vers_dict() for p in previsions],
+            ensure_ascii=False,
+            indent=2,
+        ) if previsions else "Aucune prevision disponible"
+
+        # Construire le JSON de l'historique
+        if historique_recent:
+            hist_data = []
+            for h in historique_recent:
+                hist_data.append({
+                    "date": h.date,
+                    "mode": h.mode,
+                    "routine_matin": h.routine_matin,
+                    "routine_soir": h.routine_soir,
+                    "resume": h.resume_ia,
+                })
+            historique_json = json.dumps(hist_data, ensure_ascii=False, indent=2)
+        else:
+            historique_json = "Aucun historique disponible (premiere analyse)"
+
+        # Instructions supplementaires (mode detaille)
+        instructions_supplementaires = ""
+        if mode == "detaille":
+            parts = ["## INSTRUCTIONS DU JOUR (MODE DETAILLE)"]
+            if niveau_stress_jour is not None:
+                parts.append(f"- Niveau de stress actuel: {niveau_stress_jour}/10")
+            if instructions_jour:
+                parts.append(f"- Instructions specifiques: {instructions_jour}")
+            instructions_supplementaires = "\n".join(parts)
+
+        # Niveau de stress (du jour ou du profil)
+        stress = niveau_stress_jour if niveau_stress_jour is not None else profil.niveau_stress
+
+        # Construire le prompt
+        prompt = PROMPT_ANALYSE_ROUTINE.format(
+            type_peau=profil.type_peau.value,
+            tranche_age=profil.tranche_age.value,
+            niveau_stress=stress,
+            maladies_peau=", ".join(profil.maladies_peau) if profil.maladies_peau else "Aucune",
+            allergies=", ".join(profil.allergies) if profil.allergies else "Aucune",
+            objectifs=", ".join(
+                o.value if hasattr(o, 'value') else str(o) for o in profil.objectifs
+            ) if profil.objectifs else "Aucun specifie",
+            produits_json=produits_json,
+            ville=ville,
+            uv=conditions_actuelles.indice_uv,
+            niveau_uv=conditions_actuelles.niveau_uv,
+            uv_max=conditions_actuelles.indice_uv_max,
+            humidite=conditions_actuelles.humidite_relative,
+            niveau_humidite=conditions_actuelles.niveau_humidite,
+            temperature=conditions_actuelles.temperature,
+            pm25=conditions_actuelles.pm2_5 if conditions_actuelles.pm2_5 else "N/A",
+            niveau_pollution=conditions_actuelles.niveau_pollution,
+            previsions_json=previsions_json,
+            historique_json=historique_json,
+            instructions_supplementaires=instructions_supplementaires,
+        )
+
+        # Utiliser Gemini 2.5 Flash pour l'analyse (plus capable)
+        client_analyse = ClientGemini(
+            api_key=self.api_key,
+            model="gemini-2.5-flash",
+        )
+
+        reponse = client_analyse.generer(prompt, max_tokens=4096, temperature=0.4)
+
+        if not reponse:
+            return {
+                "erreur": "Pas de reponse de Gemini. Verifie ta connexion internet et ta cle API.",
+                "routine_matin": [],
+                "routine_soir": [],
+                "alertes": [],
+                "conseils_jour": "",
+                "resume": "",
+            }
+
+        # Parser la reponse JSON
+        resultat = self._extraire_json(reponse)
+
+        if resultat is None:
+            return {
+                "erreur": f"Impossible de parser la reponse IA:\n{reponse[:200]}...",
+                "routine_matin": [],
+                "routine_soir": [],
+                "alertes": [],
+                "conseils_jour": "",
+                "resume": "",
+            }
+
+        # S'assurer que tous les champs existent
+        return {
+            "routine_matin": resultat.get("routine_matin", []),
+            "routine_soir": resultat.get("routine_soir", []),
+            "alertes": resultat.get("alertes", []),
+            "conseils_jour": resultat.get("conseils_jour", ""),
+            "resume": resultat.get("resume", ""),
+        }

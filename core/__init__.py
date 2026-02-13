@@ -2,27 +2,35 @@
 DermaLogic - Module Core
 ========================
 
-Ce module contient la logique métier :
-- Algorithme de décision dermatologique
-- Modèles de données (produits, conditions, résultats)
-- Enums et constantes
+Ce module contient la logique metier :
+- Modeles de donnees centralises (produits, profil, historique)
+- Analyseur IA (remplace l'ancien MoteurDecision)
+- Gestionnaires de persistence (profil, historique, settings)
 """
 
-from core.algorithme import (
-    # Énumérations
+from core.models import (
+    # Enumerations
     Categorie,
     ActiveTag,
     MomentUtilisation,
-    
-    # Structures de données
+    TypePeau,
+    TrancheAge,
+    ObjectifPeau,
+
+    # Structures de donnees
     ProduitDerma,
+    ProfilUtilisateur,
+    EntreeHistorique,
+    Settings,
+)
+
+from core.algorithme import (
+    # Legacy (deprecie)
     ConditionsEnvironnementales,
     ResultatMoment,
     ResultatDecision,
-    
-    # Moteur de décision
     MoteurDecision,
-    
+
     # Constantes
     SEUIL_UV_CRITIQUE,
     SEUIL_HUMIDITE_BASSE,
@@ -31,20 +39,26 @@ from core.algorithme import (
 )
 
 __all__ = [
-    # Énumérations
+    # Enumerations
     "Categorie",
     "ActiveTag",
     "MomentUtilisation",
-    
-    # Structures de données
+    "TypePeau",
+    "TrancheAge",
+    "ObjectifPeau",
+
+    # Structures de donnees
     "ProduitDerma",
+    "ProfilUtilisateur",
+    "EntreeHistorique",
+    "Settings",
+
+    # Legacy
     "ConditionsEnvironnementales",
     "ResultatMoment",
     "ResultatDecision",
-    
-    # Moteur
     "MoteurDecision",
-    
+
     # Constantes
     "SEUIL_UV_CRITIQUE",
     "SEUIL_HUMIDITE_BASSE",

@@ -3,13 +3,12 @@ DermaLogic - Gestionnaire de Produits
 =====================================
 
 Persistance JSON des produits utilisateur.
-Deplace depuis interface.py (logique pure, pas d'UI).
 """
 
 import json
 from pathlib import Path
 
-from core.algorithme import ProduitDerma
+from core.models import ProduitDerma
 
 
 class GestionnaireProduits:

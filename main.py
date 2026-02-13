@@ -10,10 +10,14 @@ Point d'entree principal de l'application.
 """
 
 import sys
+import logging
 from pathlib import Path
 
 # Ajout du chemin du projet pour les imports
 sys.path.insert(0, str(Path(__file__).parent))
+
+# Supprimer les erreurs asyncio a la fermeture sur Windows
+logging.getLogger("asyncio").setLevel(logging.CRITICAL)
 
 import flet as ft
 from gui.app import main as flet_main
@@ -26,7 +30,10 @@ def main():
     print("=" * 50)
     print()
 
-    ft.run(flet_main)
+    try:
+        ft.run(flet_main)
+    except (ConnectionResetError, OSError):
+        pass
 
 
 if __name__ == "__main__":

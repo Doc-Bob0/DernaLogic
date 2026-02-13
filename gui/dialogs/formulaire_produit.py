@@ -9,7 +9,7 @@ Peut etre pre-rempli avec des valeurs initiales (ex: depuis l'IA).
 import flet as ft
 from gui.theme import COULEUR_ACCENT, COULEUR_FOND, COULEUR_DANGER, COULEUR_CARTE
 from gui.data import GestionnaireProduits
-from core.algorithme import ProduitDerma, Categorie, MomentUtilisation, ActiveTag
+from core.models import ProduitDerma, Categorie, MomentUtilisation, ActiveTag
 
 
 class FormulaireProduit:
@@ -166,16 +166,11 @@ class FormulaireProduit:
 
     def ouvrir(self):
         """Ouvre le dialogue."""
-        self.page.overlay.append(self.dialog)
-        self.dialog.open = True
-        self.page.update()
+        self.page.show_dialog(self.dialog)
 
     def _fermer(self, e=None):
         """Ferme le dialogue."""
-        self.dialog.open = False
-        self.page.update()
-        if self.dialog in self.page.overlay:
-            self.page.overlay.remove(self.dialog)
+        self.page.pop_dialog()
 
     def _valider(self, e):
         """Valide et ajoute le produit."""

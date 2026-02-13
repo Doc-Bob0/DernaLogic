@@ -21,16 +21,17 @@ from gui.theme import (
 from gui.data import GestionnaireProduits
 from gui.dialogs.formulaire_produit import FormulaireProduit
 from gui.dialogs.fenetre_recherche_ia import FenetreRechercheIA
-from core.algorithme import ProduitDerma
+from core.models import ProduitDerma
 
 
 class PageProduits(ft.Column):
     """Page de gestion des produits."""
 
-    def __init__(self, page: ft.Page, gestionnaire: GestionnaireProduits):
+    def __init__(self, page: ft.Page, gestionnaire: GestionnaireProduits, get_api_key=None):
         super().__init__(expand=True, scroll=ft.ScrollMode.AUTO, spacing=0)
         self.page_ref = page
         self.gestionnaire = gestionnaire
+        self._get_api_key = get_api_key
 
         # Header
         self.label_count = ft.Text(
@@ -318,10 +319,12 @@ class PageProduits(ft.Column):
 
     def _ajouter_avec_ia(self, e=None):
         """Ouvre la fenetre de recherche IA."""
+        api_key = self._get_api_key() if self._get_api_key else ""
         fenetre = FenetreRechercheIA(
             self.page_ref,
             self.gestionnaire,
             self._on_produit_ajoute,
+            api_key=api_key,
         )
         fenetre.ouvrir()
 

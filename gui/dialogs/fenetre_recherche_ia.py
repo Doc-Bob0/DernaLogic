@@ -24,11 +24,11 @@ from api.gemini import ClientGemini
 class FenetreRechercheIA:
     """Gere le dialogue de recherche IA."""
 
-    def __init__(self, page: ft.Page, gestionnaire: GestionnaireProduits, callback):
+    def __init__(self, page: ft.Page, gestionnaire: GestionnaireProduits, callback, api_key: str = ""):
         self.page = page
         self.gestionnaire = gestionnaire
         self.callback = callback
-        self.client_gemini = ClientGemini()
+        self.client_gemini = ClientGemini(api_key=api_key)
 
         self.entry_produit = ft.TextField(
             hint_text="Ex: CeraVe Creme Hydratante, Paula's Choice BHA...",
@@ -92,16 +92,11 @@ class FenetreRechercheIA:
 
     def ouvrir(self):
         """Ouvre le dialogue."""
-        self.page.overlay.append(self.dialog)
-        self.dialog.open = True
-        self.page.update()
+        self.page.show_dialog(self.dialog)
 
     def _fermer(self, e=None):
         """Ferme le dialogue."""
-        self.dialog.open = False
-        self.page.update()
-        if self.dialog in self.page.overlay:
-            self.page.overlay.remove(self.dialog)
+        self.page.pop_dialog()
 
     def _analyser(self, e=None):
         """Lance l'analyse du produit par l'IA (threade)."""
@@ -126,10 +121,7 @@ class FenetreRechercheIA:
 
                 if resultat.succes:
                     # Fermer ce dialogue
-                    self.dialog.open = False
-                    self.page.update()
-                    if self.dialog in self.page.overlay:
-                        self.page.overlay.remove(self.dialog)
+                    self.page.pop_dialog()
 
                     # Ouvrir le formulaire pre-rempli
                     valeurs = {

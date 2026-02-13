@@ -190,16 +190,11 @@ class FenetreSelectionVille:
 
     def ouvrir(self):
         """Ouvre le dialogue."""
-        self.page.overlay.append(self.dialog)
-        self.dialog.open = True
-        self.page.update()
+        self.page.show_dialog(self.dialog)
 
     def _fermer(self, e=None):
         """Ferme le dialogue."""
-        self.dialog.open = False
-        self.page.update()
-        if self.dialog in self.page.overlay:
-            self.page.overlay.remove(self.dialog)
+        self.page.pop_dialog()
 
     def _on_tab_change(self, e):
         """Callback changement d'onglet."""
