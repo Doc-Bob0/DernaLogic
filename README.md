@@ -23,6 +23,8 @@ DermaLogic analyse vos produits de soin, les conditions environnementales (UV, h
 - Export JSON des donnees
 - Villes favorites avec cache meteo
 - Interface responsive (desktop + mobile) avec theme sombre
+- Compatible Android (APK via `flet build apk`)
+- Stockage adaptatif multi-plateforme (Windows, macOS, Linux, Android)
 
 ---
 
@@ -33,7 +35,7 @@ DermaLogic analyse vos produits de soin, les conditions environnementales (UV, h
 - Python 3.10+
 - Connexion internet (APIs meteo et Gemini)
 
-### Etapes
+### Desktop (Windows / macOS / Linux)
 
 ```bash
 git clone https://github.com/votre-username/DermaLogic.git
@@ -45,6 +47,15 @@ venv\Scripts\activate
 source venv/bin/activate
 pip install -r requirements.txt
 python main.py
+```
+
+### Android (APK)
+
+```bash
+# Prerequis : Android SDK installe
+pip install flet
+flet build apk --project "DermaLogic" --org "com.dermalogic"
+# L'APK sera genere dans build/apk/
 ```
 
 ---
@@ -61,7 +72,11 @@ La cle API est geree directement dans l'application :
 4. Collez votre cle API et cliquez **Sauvegarder**
 5. Utilisez **Tester la connexion** pour verifier
 
-La cle est stockee localement dans `user_data/settings.json` (exclu du git).
+La cle est stockee localement dans le dossier de donnees de la plateforme :
+- **Windows** : `%APPDATA%/DermaLogic/settings.json`
+- **macOS** : `~/Library/Application Support/DermaLogic/settings.json`
+- **Linux** : `~/.dermalogic/settings.json`
+- **Android** : stockage interne de l'application
 
 ---
 
@@ -108,6 +123,7 @@ DermaLogic/
 |-- core/                            # Logique metier
 |   |-- models.py                    # Enums et dataclasses (TypePeau, ProduitDerma, etc.)
 |   |-- analyseur.py                 # Orchestrateur d'analyse IA
+|   |-- storage.py                   # Stockage multi-plateforme (Android, Windows, etc.)
 |   |-- config.py                    # Gestion ville + favoris
 |   |-- profil.py                    # Gestion profil utilisateur
 |   |-- historique.py                # Gestion historique des analyses
@@ -132,7 +148,7 @@ DermaLogic/
 |       |-- nav_bar.py               # Navigation desktop + mobile
 |       +-- carte_environnement.py   # Carte meteo (UV, humidite, etc.)
 |
-+-- user_data/                       # Donnees utilisateur (gitignore)
++-- [dossier donnees plateforme]/    # Donnees utilisateur (auto-detecte)
     |-- settings.json                # Cle API (genere)
     |-- profile.json                 # Profil (genere)
     |-- produits_derma.json          # Produits (genere)

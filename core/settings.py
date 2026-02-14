@@ -10,18 +10,19 @@ import json
 from pathlib import Path
 
 from core.models import Settings
+from core.storage import obtenir_dossier_donnees
 
 
 class GestionnaireSettings:
     """
     Gere les parametres persistants de l'application.
 
-    Sauvegarde dans user_data/settings.json.
+    Sauvegarde dans le dossier de donnees de la plateforme.
     """
 
     def __init__(self, chemin_fichier: Path = None):
         if chemin_fichier is None:
-            chemin_fichier = Path(__file__).parent.parent / "user_data" / "settings.json"
+            chemin_fichier = obtenir_dossier_donnees() / "settings.json"
 
         self.chemin_fichier = chemin_fichier
         self.chemin_fichier.parent.mkdir(parents=True, exist_ok=True)

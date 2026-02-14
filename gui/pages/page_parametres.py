@@ -226,7 +226,7 @@ class PageParametres(ft.Column):
         self.page_ref.run_thread(_background)
 
     def _exporter_json(self, e=None):
-        """Exporte les donnees en JSON dans user_data/."""
+        """Exporte les donnees en JSON dans le dossier de donnees."""
         if not self.exporter_callback:
             self.label_export.value = "Fonction d'export non configuree"
             self.label_export.color = COULEUR_DANGER
@@ -234,13 +234,13 @@ class PageParametres(ft.Column):
             return
 
         try:
-            import os
             from datetime import datetime
+            from core.storage import obtenir_dossier_donnees
 
             data = self.exporter_callback()
-            os.makedirs("user_data", exist_ok=True)
+            dossier = obtenir_dossier_donnees()
             horodatage = datetime.now().strftime("%Y%m%d_%H%M%S")
-            chemin = os.path.join("user_data", f"dermalogic_export_{horodatage}.json")
+            chemin = dossier / f"dermalogic_export_{horodatage}.json"
 
             with open(chemin, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)

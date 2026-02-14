@@ -37,8 +37,12 @@ def main(page: ft.Page):
     page.theme_mode = ft.ThemeMode.DARK
     page.bgcolor = COULEUR_FOND
     page.padding = 0
-    page.window.width = 1100
-    page.window.height = 750
+
+    # Dimensions fenetre uniquement sur desktop (pas sur mobile/Android)
+    from core.storage import est_mobile as _est_mobile_plateforme
+    if not _est_mobile_plateforme():
+        page.window.width = 1100
+        page.window.height = 750
 
     # --- Etat de l'application ---
     state = AppState()

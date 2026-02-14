@@ -50,6 +50,9 @@ class FenetreRechercheIA:
             height=40,
         )
 
+        # Dimensions responsives pour mobile
+        dialog_width = min(page.width * 0.9, 420) if page.width else 420
+
         self.dialog = ft.AlertDialog(
             modal=True,
             title=ft.Column(
@@ -65,7 +68,7 @@ class FenetreRechercheIA:
                 ],
             ),
             content=ft.Container(
-                width=420,
+                width=dialog_width,
                 content=ft.Column(
                     spacing=15,
                     controls=[

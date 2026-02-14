@@ -180,6 +180,10 @@ class FenetreSelectionVille:
             ),
         )
 
+        # Dimensions responsives pour mobile
+        dialog_width = min(page.width * 0.9, 450) if page.width else 450
+        dialog_height = min(page.height * 0.8, 450) if page.height else 450
+
         # --- Dialog ---
         self.dialog = ft.AlertDialog(
             modal=True,
@@ -187,8 +191,8 @@ class FenetreSelectionVille:
                 "Gerer les villes", size=18, weight=ft.FontWeight.BOLD, color="#ffffff"
             ),
             content=ft.Container(
-                width=450,
-                height=450,
+                width=dialog_width,
+                height=dialog_height,
                 content=ft.Column(
                     controls=[
                         barre_actuelle,

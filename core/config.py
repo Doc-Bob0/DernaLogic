@@ -106,19 +106,16 @@ class Configuration:
 class GestionnaireConfig:
     """
     Gère la configuration persistante de l'application.
-    
-    Sauvegarde automatiquement dans user_data/config.json :
+
+    Sauvegarde automatiquement dans le dossier de donnees de la plateforme :
     - La ville actuelle avec ses données météo
     - Les villes favorites avec leurs données météo en cache
-    
-    Note: Le dossier user_data/ est ignoré par git pour ne pas
-    partager les données personnelles de l'utilisateur.
     """
-    
+
     def __init__(self, chemin_fichier: Path = None):
         if chemin_fichier is None:
-            # Utilise user_data/ qui est ignoré par git
-            chemin_fichier = Path(__file__).parent.parent / "user_data" / "config.json"
+            from core.storage import obtenir_dossier_donnees
+            chemin_fichier = obtenir_dossier_donnees() / "config.json"
         
         self.chemin_fichier = chemin_fichier
         self.chemin_fichier.parent.mkdir(parents=True, exist_ok=True)

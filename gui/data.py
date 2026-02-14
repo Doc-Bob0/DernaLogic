@@ -9,19 +9,20 @@ import json
 from pathlib import Path
 
 from core.models import ProduitDerma
+from core.storage import obtenir_dossier_donnees
 
 
 class GestionnaireProduits:
     """
     Gere les produits personnalises avec persistance JSON.
 
-    Les produits sont sauvegardes dans user_data/produits_derma.json
+    Les produits sont sauvegardes dans le dossier de donnees de la plateforme
     et charges automatiquement au demarrage.
     """
 
     def __init__(self, chemin_fichier: Path = None):
         if chemin_fichier is None:
-            chemin_fichier = Path(__file__).parent.parent / "user_data" / "produits_derma.json"
+            chemin_fichier = obtenir_dossier_donnees() / "produits_derma.json"
 
         self.chemin_fichier = chemin_fichier
         self.chemin_fichier.parent.mkdir(parents=True, exist_ok=True)

@@ -124,6 +124,10 @@ class FormulaireProduit:
                 )
             )
 
+        # Dimensions responsives pour mobile
+        dialog_width = min(page.width * 0.9, 400) if page.width else 400
+        dialog_height = min(page.height * 0.8, 500) if page.height else 500
+
         # Construction du dialogue
         self.dialog = ft.AlertDialog(
             modal=True,
@@ -135,8 +139,8 @@ class FormulaireProduit:
                 ],
             ),
             content=ft.Container(
-                width=400,
-                height=500,
+                width=dialog_width,
+                height=dialog_height,
                 content=ft.Column(
                     scroll=ft.ScrollMode.AUTO,
                     spacing=12,
