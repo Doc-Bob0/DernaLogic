@@ -132,21 +132,22 @@ Tu dois creer une routine de soins personnalisee basee sur le contexte suivant.
 7. Prends en compte le stress du patient (stress eleve = routine apaisante, produits doux)
 8. Si pollution elevee, insiste sur le nettoyage
 9. Tout le texte doit etre en francais
+10. IMPORTANT : Sois CONCIS. Chaque "raison" doit faire 1 phrase courte (max 20 mots). Les alertes et conseils doivent etre brefs (1-2 phrases max). Le resume doit faire 1 phrase.
 
 ## FORMAT DE REPONSE (JSON strict)
 {{
     "routine_matin": [
-        {{"produit": "Nom du produit", "raison": "Pourquoi ce produit maintenant"}}
+        {{"produit": "Nom du produit", "raison": "Raison courte en 1 phrase"}}
     ],
     "routine_soir": [
-        {{"produit": "Nom du produit", "raison": "Pourquoi ce produit maintenant"}}
+        {{"produit": "Nom du produit", "raison": "Raison courte en 1 phrase"}}
     ],
-    "alertes": ["Alerte 1 si applicable"],
-    "conseils_jour": "Conseil personnalise pour aujourd'hui",
-    "resume": "Resume court de la strategie pour cette routine"
+    "alertes": ["Alerte courte si applicable"],
+    "conseils_jour": "Conseil bref pour aujourd'hui",
+    "resume": "Resume en 1 phrase"
 }}
 
-Retourne UNIQUEMENT le JSON, rien d'autre."""
+Retourne UNIQUEMENT le JSON valide, rien d'autre. Pas de commentaires, pas de markdown."""
 
 
 # =============================================================================
@@ -215,7 +216,7 @@ class ClientGemini:
                 f"{self.api_url}?key={self.api_key}",
                 headers=headers,
                 json=payload,
-                timeout=60
+                timeout=120
             )
             duree = time.time() - t0
             print(f"[Gemini] Reponse recue en {duree:.1f}s (HTTP {response.status_code})")
@@ -225,7 +226,12 @@ class ClientGemini:
             candidates = data.get("candidates", [])
 
             if candidates:
-                content = candidates[0].get("content", {})
+                candidate = candidates[0]
+                finish_reason = candidate.get("finishReason", "")
+                if finish_reason and finish_reason != "STOP":
+                    print(f"[Gemini] ATTENTION: finishReason={finish_reason} (reponse potentiellement tronquee)")
+
+                content = candidate.get("content", {})
                 parts = content.get("parts", [])
                 if parts:
                     # Gemini 2.5 Flash peut retourner plusieurs parts :
@@ -496,7 +502,7 @@ class ClientGemini:
             model="gemini-2.5-flash",
         )
 
-        reponse = client_analyse.generer(prompt, max_tokens=4096, temperature=0.4)
+        reponse = client_analyse.generer(prompt, max_tokens=8192, temperature=0.4)
 
         if reponse:
             print(f"[Gemini] Reponse brute (200 premiers car.): {reponse[:200]}")
