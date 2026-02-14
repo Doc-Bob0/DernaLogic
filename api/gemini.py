@@ -228,9 +228,23 @@ class ClientGemini:
                 content = candidates[0].get("content", {})
                 parts = content.get("parts", [])
                 if parts:
-                    texte = parts[0].get("text", "").strip()
-                    print(f"[Gemini] Reponse OK ({len(texte)} caracteres)")
-                    return texte
+                    # Gemini 2.5 Flash peut retourner plusieurs parts :
+                    # - parts avec "thought": true = reflexion interne (a ignorer)
+                    # - parts sans "thought" = reponse finale (le JSON qu'on veut)
+                    texte_final = ""
+                    for part in parts:
+                        if part.get("thought", False):
+                            thought_text = part.get("text", "")
+                            print(f"[Gemini] Part thinking ignoree ({len(thought_text)} car.)")
+                            continue
+                        texte_final = part.get("text", "").strip()
+                    if not texte_final:
+                        # Fallback : si toutes les parts sont des thoughts,
+                        # prendre la derniere part comme reponse
+                        texte_final = parts[-1].get("text", "").strip()
+                        print(f"[Gemini] Fallback: derniere part utilisee ({len(texte_final)} car.)")
+                    print(f"[Gemini] Reponse OK ({len(texte_final)} caracteres)")
+                    return texte_final
 
             print("[Gemini] Reponse vide (aucun candidat)")
             return None
@@ -247,9 +261,13 @@ class ClientGemini:
 
         texte = texte.strip()
 
+        # Enlever les blocs de reflexion <think>...</think>
+        texte = re.sub(r'<think>.*?</think>', '', texte, flags=re.DOTALL)
+        texte = texte.strip()
+
         # Enlever les blocs de code markdown
-        texte = re.sub(r'^```(?:json)?\s*', '', texte)
-        texte = re.sub(r'\s*```$', '', texte)
+        texte = re.sub(r'```(?:json)?\s*', '', texte)
+        texte = re.sub(r'```', '', texte)
         texte = texte.strip()
 
         # Essayer de parser directement
@@ -258,29 +276,41 @@ class ClientGemini:
         except json.JSONDecodeError:
             pass
 
-        # Chercher un objet JSON dans le texte avec regex
-        match = re.search(r'\{[^{}]*\}', texte, re.DOTALL)
-        if match:
-            try:
-                return json.loads(match.group())
-            except json.JSONDecodeError:
-                pass
-
-        # Chercher plus largement (JSON imbrique possible)
+        # Chercher le JSON imbrique avec balance des accolades
+        # (methode la plus fiable pour du JSON avec des listes de dicts)
         start = texte.find('{')
         if start != -1:
             depth = 0
-            for i, char in enumerate(texte[start:], start):
+            in_string = False
+            escape = False
+            for i in range(start, len(texte)):
+                char = texte[i]
+                if escape:
+                    escape = False
+                    continue
+                if char == '\\' and in_string:
+                    escape = True
+                    continue
+                if char == '"':
+                    in_string = not in_string
+                    continue
+                if in_string:
+                    continue
                 if char == '{':
                     depth += 1
                 elif char == '}':
                     depth -= 1
                     if depth == 0:
+                        candidate = texte[start:i+1]
                         try:
-                            return json.loads(texte[start:i+1])
+                            return json.loads(candidate)
                         except json.JSONDecodeError:
-                            pass
-                        break
+                            # Continuer a chercher un autre objet JSON
+                            start = texte.find('{', i + 1)
+                            if start == -1:
+                                break
+                            depth = 0
+                            continue
 
         return None
 
@@ -467,6 +497,9 @@ class ClientGemini:
         )
 
         reponse = client_analyse.generer(prompt, max_tokens=4096, temperature=0.4)
+
+        if reponse:
+            print(f"[Gemini] Reponse brute (200 premiers car.): {reponse[:200]}")
 
         if not reponse:
             print("[Gemini] ECHEC: pas de reponse")
