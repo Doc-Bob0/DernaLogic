@@ -94,6 +94,7 @@ class AnalyseurDerma:
                 routine_soir=resultat.get("routine_soir", []),
                 alertes=resultat.get("alertes", []),
                 conseils_jour=resultat.get("conseils_jour", ""),
+                activites_jour=resultat.get("activites_jour", []),
             )
             self.historique.ajouter(entree)
 

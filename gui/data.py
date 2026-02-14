@@ -64,6 +64,12 @@ class GestionnaireProduits:
         self.produits.append(produit)
         self._sauvegarder()
 
+    def modifier(self, index: int, produit: ProduitDerma) -> None:
+        """Modifie un produit existant par son index et sauvegarde."""
+        if 0 <= index < len(self.produits):
+            self.produits[index] = produit
+            self._sauvegarder()
+
     def supprimer(self, index: int) -> None:
         """Supprime un produit par son index et sauvegarde."""
         if 0 <= index < len(self.produits):

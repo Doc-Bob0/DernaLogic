@@ -16,18 +16,13 @@ DermaLogic analyse vos produits de soin, les conditions environnementales (UV, h
 - Double mode d'analyse : **Rapide** et **Detaillee** (avec instructions du jour et niveau de stress)
 - Conditions environnementales en temps reel (UV, humidite, PM2.5, temperature)
 - Previsions meteo sur 3 jours integrees au contexte d'analyse
-- Ajout de produits manuel ou par IA (detection automatique des caracteristiques)
+- Gestion de produits : ajout manuel, ajout par IA, modification et suppression
+- Conseils d'activites quotidiennes adaptes a la meteo et au profil
 - Profil utilisateur complet (type de peau, age, allergies, maladies, objectifs)
 - Historique des analyses avec detail des routines
 - Export JSON des donnees
 - Villes favorites avec cache meteo
 - Interface responsive (desktop + mobile) avec theme sombre
-
----
-
-## Bugs connus
-
-- **L'affichage des resultats d'analyse dans l'onglet Analyse ne fonctionne pas toujours** : le terminal affiche le succes de l'analyse Gemini mais les resultats ne s'affichent pas dans l'interface. Le passage de `threading.Thread` a `page.run_thread()` a ete effectue mais le probleme persiste. Investigation en cours.
 
 ---
 

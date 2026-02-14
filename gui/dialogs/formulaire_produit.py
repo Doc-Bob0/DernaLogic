@@ -13,7 +13,7 @@ from core.models import ProduitDerma, Categorie, MomentUtilisation, ActiveTag
 
 
 class FormulaireProduit:
-    """Gere le dialogue formulaire d'ajout de produit."""
+    """Gere le dialogue formulaire d'ajout/modification de produit."""
 
     def __init__(
         self,
@@ -21,11 +21,14 @@ class FormulaireProduit:
         gestionnaire: GestionnaireProduits,
         callback,
         valeurs_initiales: dict = None,
+        index_edition: int = None,
     ):
         self.page = page
         self.gestionnaire = gestionnaire
         self.callback = callback
         self.valeurs = valeurs_initiales or {}
+        self.index_edition = index_edition
+        self.mode_edition = index_edition is not None
 
         # Champs du formulaire
         self.entry_nom = ft.TextField(
@@ -104,9 +107,15 @@ class FormulaireProduit:
         )
 
         # Titre
-        titre = "Nouveau Produit (IA)" if valeurs_initiales else "Nouveau Produit"
+        if self.mode_edition:
+            titre = "Modifier le Produit"
+        elif valeurs_initiales:
+            titre = "Nouveau Produit (IA)"
+        else:
+            titre = "Nouveau Produit"
+
         sous_titre_controls = []
-        if valeurs_initiales:
+        if valeurs_initiales and not self.mode_edition:
             sous_titre_controls.append(
                 ft.Text(
                     "Verifie les informations avant d'ajouter",
@@ -151,7 +160,7 @@ class FormulaireProduit:
                     style=ft.ButtonStyle(color=COULEUR_DANGER),
                 ),
                 ft.Button(
-                    "Ajouter",
+                    "Modifier" if self.mode_edition else "Ajouter",
                     on_click=self._valider,
                     bgcolor=COULEUR_ACCENT,
                     color=COULEUR_FOND,
@@ -173,7 +182,7 @@ class FormulaireProduit:
         self.page.pop_dialog()
 
     def _valider(self, e):
-        """Valide et ajoute le produit."""
+        """Valide et ajoute ou modifie le produit."""
         nom = self.entry_nom.value.strip() if self.entry_nom.value else ""
         if not nom:
             self.entry_nom.error_text = "Entrez un nom"
@@ -190,7 +199,10 @@ class FormulaireProduit:
                 cleansing_power=int(self.slider_clean.value),
                 active_tag=ActiveTag(self.dropdown_tag.value),
             )
-            self.gestionnaire.ajouter(produit)
+            if self.mode_edition:
+                self.gestionnaire.modifier(self.index_edition, produit)
+            else:
+                self.gestionnaire.ajouter(produit)
             self._fermer()
             self.callback()
         except Exception as ex:

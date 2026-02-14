@@ -238,6 +238,7 @@ class EntreeHistorique:
     routine_soir: list = field(default_factory=list)
     alertes: list = field(default_factory=list)
     conseils_jour: str = ""
+    activites_jour: list = field(default_factory=list)
 
     def vers_dict(self) -> dict:
         """Convertit en dictionnaire pour serialisation JSON."""
@@ -250,6 +251,7 @@ class EntreeHistorique:
             "routine_soir": self.routine_soir,
             "alertes": self.alertes,
             "conseils_jour": self.conseils_jour,
+            "activites_jour": self.activites_jour,
         }
 
     @classmethod
@@ -264,6 +266,7 @@ class EntreeHistorique:
             routine_soir=data.get("routine_soir", []),
             alertes=data.get("alertes", []),
             conseils_jour=data.get("conseils_jour", ""),
+            activites_jour=data.get("activites_jour", []),
         )
 
 

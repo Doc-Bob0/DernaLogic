@@ -256,11 +256,20 @@ class PageProduits(ft.Column):
                             ),
                         ],
                     ),
+                    # Bouton modifier
+                    ft.IconButton(
+                        icon=ft.Icons.EDIT,
+                        icon_color=COULEUR_ACCENT,
+                        icon_size=20,
+                        tooltip="Modifier",
+                        on_click=lambda e, idx=index, p=produit: self._ouvrir_edition(idx, p),
+                    ),
                     # Bouton supprimer
                     ft.IconButton(
                         icon=ft.Icons.CLOSE,
                         icon_color=COULEUR_DANGER,
                         icon_size=20,
+                        tooltip="Supprimer",
                         on_click=lambda e, idx=index: self._confirmer_suppression(idx),
                     ),
                 ],
@@ -299,6 +308,26 @@ class PageProduits(ft.Column):
             actions_alignment=ft.MainAxisAlignment.END,
         )
         self.page_ref.show_dialog(dialog)
+
+    def _ouvrir_edition(self, index: int, produit: ProduitDerma):
+        """Ouvre le formulaire de modification d'un produit."""
+        valeurs = {
+            "nom": produit.nom,
+            "category": produit.category.value,
+            "moment": produit.moment.value,
+            "photosensitive": produit.photosensitive,
+            "occlusivity": produit.occlusivity,
+            "cleansing_power": produit.cleansing_power,
+            "active_tag": produit.active_tag.value,
+        }
+        form = FormulaireProduit(
+            self.page_ref,
+            self.gestionnaire,
+            self._on_produit_ajoute,
+            valeurs_initiales=valeurs,
+            index_edition=index,
+        )
+        form.ouvrir()
 
     def _ouvrir_formulaire(self, e=None):
         """Ouvre le formulaire d'ajout de produit."""

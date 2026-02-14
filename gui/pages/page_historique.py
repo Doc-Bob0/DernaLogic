@@ -126,6 +126,18 @@ class PageHistorique(ft.Column):
                     ft.Text(f"  ⚠ {alerte}", size=12, color=COULEUR_DANGER)
                 )
 
+        # Activites du jour
+        activites = getattr(entree, "activites_jour", [])
+        if activites:
+            detail_content.controls.append(ft.Container(height=5))
+            detail_content.controls.append(
+                ft.Text("Pendant la journee", size=13, weight=ft.FontWeight.BOLD, color="#00b4d8")
+            )
+            for activite in activites:
+                detail_content.controls.append(
+                    ft.Text(f"  • {activite}", size=12, color="#ffffff")
+                )
+
         # Conseils
         if entree.conseils_jour:
             detail_content.controls.append(ft.Container(height=5))

@@ -399,6 +399,18 @@ class PageAccueil(ft.Column):
                     ft.Text(f"  ⚠ {alerte}", size=12, color=COULEUR_DANGER)
                 )
 
+        # Activites du jour
+        activites = resultat.get("activites_jour", [])
+        if activites:
+            col.controls.append(ft.Container(height=5))
+            col.controls.append(
+                ft.Text("Pendant la journee", size=14, weight=ft.FontWeight.BOLD, color="#00b4d8")
+            )
+            for activite in activites:
+                col.controls.append(
+                    ft.Text(f"  • {activite}", size=12, color="#ffffff")
+                )
+
         # Conseil du jour
         conseil = resultat.get("conseils_jour", "")
         if conseil:

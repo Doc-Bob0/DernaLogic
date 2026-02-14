@@ -144,8 +144,12 @@ Tu dois creer une routine de soins personnalisee basee sur le contexte suivant.
     ],
     "alertes": ["Alerte courte si applicable"],
     "conseils_jour": "Conseil bref pour aujourd'hui",
+    "activites_jour": ["Activite ou habitude recommandee pour la journee en lien avec la peau et la meteo"],
     "resume": "Resume en 1 phrase"
 }}
+
+NOTES :
+- "activites_jour" : 2 a 4 conseils pratiques sur ce que le patient peut faire pendant la journee (alimentation, hydratation, sport, protection, gestes a eviter...) en tenant compte de la meteo, du stress et du profil.
 
 Retourne UNIQUEMENT le JSON valide, rien d'autre. Pas de commentaires, pas de markdown."""
 
@@ -515,6 +519,7 @@ class ClientGemini:
                 "routine_soir": [],
                 "alertes": [],
                 "conseils_jour": "",
+                "activites_jour": [],
                 "resume": "",
             }
 
@@ -530,6 +535,7 @@ class ClientGemini:
                 "routine_soir": [],
                 "alertes": [],
                 "conseils_jour": "",
+                "activites_jour": [],
                 "resume": "",
             }
 
@@ -537,7 +543,8 @@ class ClientGemini:
         nb_matin = len(resultat.get("routine_matin", []))
         nb_soir = len(resultat.get("routine_soir", []))
         nb_alertes = len(resultat.get("alertes", []))
-        print(f"[Gemini] SUCCES: {nb_matin} produits matin, {nb_soir} produits soir, {nb_alertes} alertes")
+        nb_activites = len(resultat.get("activites_jour", []))
+        print(f"[Gemini] SUCCES: {nb_matin} produits matin, {nb_soir} produits soir, {nb_alertes} alertes, {nb_activites} activites")
 
         # S'assurer que tous les champs existent
         return {
@@ -545,5 +552,6 @@ class ClientGemini:
             "routine_soir": resultat.get("routine_soir", []),
             "alertes": resultat.get("alertes", []),
             "conseils_jour": resultat.get("conseils_jour", ""),
+            "activites_jour": resultat.get("activites_jour", []),
             "resume": resultat.get("resume", ""),
         }
